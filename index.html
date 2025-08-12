@@ -2,32 +2,38 @@
 <html lang="es">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
     <title>Sistema Agrícola Mejorado</title>
     <link rel="stylesheet" href="styles.css">
     <script src="https://cdn.sheetjs.com/xlsx-0.19.3/package/dist/xlsx.full.min.js"></script>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
 </head>
 <body>
+    <!-- Barra superior para móviles -->
+    <div class="mobile-header mobile-only">
+        <button id="mobile-nav-toggle">
+            <i class="fas fa-bars"></i>
+        </button>
+        <h2 class="mobile-title">Sistema Agrícola</h2>
+    </div>
+
+    <!-- Menú lateral -->
     <nav id="main-nav">
-        <div class="nav-header">
+        <div class="nav-header desktop-only">
             <h2>Sistema Agrícola</h2>
-            <button id="nav-toggle" class="mobile-only">
-                <i class="fas fa-bars"></i>
-            </button>
         </div>
         
         <div class="nav-sections">
             <div class="nav-section">
-                <h3 class="section-title">Lotes <i class="fas fa-chevron-down"></i></h3>
+                <h3 class="section-title">Lotes <i class="fas fa-chevron-down mobile-only"></i></h3>
                 <div class="section-content">
                     <ul id="lotes-list"></ul>
-                    <button id="add-lote-btn">+ Nuevo Lote</button>
+                    <button id="add-lote-btn" class="big-button">+ Nuevo Lote</button>
                 </div>
             </div>
             
             <div class="nav-section">
-                <h3 class="section-title">Resultados <i class="fas fa-chevron-down"></i></h3>
+                <h3 class="section-title">Resultados <i class="fas fa-chevron-down mobile-only"></i></h3>
                 <div class="section-content">
                     <ul id="results-list"></ul>
                 </div>
@@ -35,15 +41,16 @@
         </div>
     </nav>
 
+    <!-- Contenido principal -->
     <main id="app">
         <div id="lote-content">
-            <!-- Contenido dinámico -->
+            <!-- Dinámico -->
         </div>
         
         <div id="results-content">
             <div class="results-header">
                 <h3 id="results-title">Resultados</h3>
-                <button id="export-excel">Exportar a Excel</button>
+                <button id="export-excel" class="big-button">Exportar a Excel</button>
             </div>
             <div id="config-container" class="config-section"></div>
             <div id="results-container"></div>

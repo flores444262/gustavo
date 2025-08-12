@@ -20,15 +20,16 @@ document.addEventListener('DOMContentLoaded', () => {
         resultsContainer: document.getElementById('results-container'),
         exportExcelBtn: document.getElementById('export-excel'),
         configContainer: document.getElementById('config-container'),
-        navToggle: document.getElementById('nav-toggle'),
-        mainNav: document.getElementById('main-nav'),
-        navSections: document.querySelectorAll('.nav-section')
+        mobileNavToggle: document.getElementById('mobile-nav-toggle'),
+        mainNav: document.getElementById('main-nav')
     };
 
     // Funciones auxiliares
     const helpers = {
         generateId: () => Date.now().toString(36) + Math.random().toString(36).substr(2),
+        
         getCurrentLote: () => state.lotes.find(lote => lote.id === state.currentLoteId),
+        
         getCurrentValvula: () => {
             const lote = helpers.getCurrentLote();
             return lote?.valvulas.find(v => v.id === state.currentValvulaId);
@@ -42,26 +43,33 @@ document.addEventListener('DOMContentLoaded', () => {
             };
             
             const divisor = config.useMultiplier ? puntos * config.multiplier : puntos;
-            
             if (divisor <= 0) return config.showPercentage ? '0%' : '0';
             
             const average = individuos / divisor;
-            
             return config.showPercentage ? (average * 100).toFixed(2) + '%' : average.toFixed(4);
         },
         
-        calculateLoteAverage: (lote) => {
-            let totalIndividuos = 0;
-            let totalPuntos = 0;
+        getTotalIndividuos: (lote) => {
+            return lote.valvulas.reduce((total, valvula) => {
+                return total + lote.plagas.reduce((sum, plaga) => {
+                    return sum + (state.conteos[lote.id]?.[valvula.id]?.[plaga.id] || 0);
+                }, 0);
+            }, 0);
+        },
+        
+        getTotalPuntos: (lote) => {
+            return lote.valvulas.reduce((sum, valvula) => sum + valvula.valor, 0);
+        },
+        
+        addPlagaToAllValvulas: (plaga) => {
+            const lote = helpers.getCurrentLote();
+            if (!lote) return;
             
             lote.valvulas.forEach(valvula => {
-                lote.plagas.forEach(plaga => {
-                    totalIndividuos += state.conteos[lote.id]?.[valvula.id]?.[plaga.id] || 0;
-                });
-                totalPuntos += valvula.valor;
+                if (!state.conteos[lote.id]) state.conteos[lote.id] = {};
+                if (!state.conteos[lote.id][valvula.id]) state.conteos[lote.id][valvula.id] = {};
+                state.conteos[lote.id][valvula.id][plaga.id] = 0;
             });
-            
-            return totalPuntos > 0 ? (totalIndividuos / totalPuntos).toFixed(4) : '0';
         },
         
         exportToExcel: () => {
@@ -104,69 +112,30 @@ document.addEventListener('DOMContentLoaded', () => {
             XLSX.writeFile(wb, `Resultados_${lote.nombre}.xlsx`);
         },
         
-        getTotalIndividuos: (lote) => {
-            return lote.valvulas.reduce((total, valvula) => {
-                return total + lote.plagas.reduce((sum, plaga) => {
-                    return sum + (state.conteos[lote.id]?.[valvula.id]?.[plaga.id] || 0);
-                }, 0);
-            }, 0);
-        },
-        
-        getTotalPuntos: (lote) => {
-            return lote.valvulas.reduce((sum, valvula) => sum + valvula.valor, 0);
-        },
-        
-        addPlagaToAllValvulas: (plaga) => {
-            const lote = helpers.getCurrentLote();
-            if (!lote) return;
-            
-            lote.valvulas.forEach(valvula => {
-                if (!state.conteos[lote.id]) state.conteos[lote.id] = {};
-                if (!state.conteos[lote.id][valvula.id]) state.conteos[lote.id][valvula.id] = {};
-                state.conteos[lote.id][valvula.id][plaga.id] = 0;
-            });
+        calculateLoteAverage: (lote) => {
+            const totalIndividuos = helpers.getTotalIndividuos(lote);
+            const totalPuntos = helpers.getTotalPuntos(lote);
+            return totalPuntos > 0 ? (totalIndividuos / totalPuntos).toFixed(4) : '0';
         }
     };
 
     // Renderizado
     const render = {
         initMobileNav: () => {
-            if (window.innerWidth <= 768) {
-                // Agregar eventos a los títulos de sección
-                document.querySelectorAll('.section-title').forEach(title => {
-                    title.addEventListener('click', (e) => {
-                        if (e.target === title || e.target.parentElement === title) {
-                            title.classList.toggle('collapsed');
-                            title.nextElementSibling.classList.toggle('collapsed');
-                        }
-                    });
-                });
+            elements.mobileNavToggle.addEventListener('click', (e) => {
+                e.stopPropagation();
+                state.navOpen = !state.navOpen;
+                elements.mainNav.classList.toggle('active');
+            });
 
-                // Evento para el botón de toggle
-                elements.navToggle.addEventListener('click', (e) => {
-                    e.stopPropagation();
-                    state.navOpen = !state.navOpen;
-                    elements.mainNav.classList.toggle('active');
-                });
-
-                // Cerrar menú al hacer clic fuera
-                document.addEventListener('click', (e) => {
-                    if (state.navOpen && !elements.mainNav.contains(e.target) && e.target !== elements.navToggle) {
-                        state.navOpen = false;
-                        elements.mainNav.classList.remove('active');
-                    }
-                });
-            } else {
-                // Resetear para desktop
-                document.querySelectorAll('.section-title').forEach(title => {
-                    title.classList.remove('collapsed');
-                    if (title.nextElementSibling) {
-                        title.nextElementSibling.classList.remove('collapsed');
-                    }
-                });
-                elements.mainNav.classList.remove('active');
-                state.navOpen = false;
-            }
+            document.addEventListener('click', (e) => {
+                if (state.navOpen && 
+                    !e.target.closest('#main-nav') && 
+                    e.target !== elements.mobileNavToggle) {
+                    state.navOpen = false;
+                    elements.mainNav.classList.remove('active');
+                }
+            });
         },
         
         updateNav: () => {
@@ -236,7 +205,7 @@ document.addEventListener('DOMContentLoaded', () => {
             
             html += `
                 <div id="valvulas-content"></div>
-                <button id="add-valvula-btn">+ Agregar Válvula</button>
+                <button id="add-valvula-btn" class="big-button">+ Agregar Válvula</button>
             `;
             
             elements.loteContent.innerHTML = html;
@@ -300,8 +269,8 @@ document.addEventListener('DOMContentLoaded', () => {
                         <div class="plaga-list" id="plaga-list"></div>
                         <div class="add-plaga-container">
                             <input type="text" id="new-plaga-nombre" placeholder="Nombre de plaga">
-                            <button id="add-plaga-btn">Agregar Plaga</button>
-                            <button id="add-plaga-all-btn" class="add-to-all-btn">Agregar a todas</button>
+                            <button id="add-plaga-btn" class="big-button">Agregar Plaga</button>
+                            <button id="add-plaga-all-btn" class="big-button add-to-all-btn">Agregar a todas</button>
                         </div>
                     </div>
                     
@@ -385,7 +354,7 @@ document.addEventListener('DOMContentLoaded', () => {
                     <label>${plaga.nombre}</label>
                     <div class="conteo-controls">
                         <input type="number" id="${conteoId}" min="0" placeholder="0">
-                        <button class="add-conteo" data-plaga="${plaga.id}">Agregar</button>
+                        <button class="add-conteo big-button" data-plaga="${plaga.id}">Agregar</button>
                         <span class="conteo-total">Total: ${currentTotal}</span>
                     </div>
                 `;
