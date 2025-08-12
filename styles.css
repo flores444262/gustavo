@@ -7,16 +7,6 @@
     --light: #ecf0f1;
     --gray: #95a5a6;
     --nav-width: 280px;
-}
-:root {
-    --primary: #3498db;
-    --secondary: #2ecc71;
-    --danger: #e74c3c;
-    --warning: #f39c12;
-    --dark: #2c3e50;
-    --light: #ecf0f1;
-    --gray: #95a5a6;
-    --nav-width: 280px;
     --mobile-header-height: 60px;
     --big-button-height: 50px;
 }
@@ -74,9 +64,7 @@ body {
     padding: 15px;
     height: 100vh;
     overflow-y: auto;
-    display: flex;
-    flex-direction: column;
-    transition: all 0.3s ease;
+    transition: transform 0.3s ease;
     position: relative;
     z-index: 100;
 }
@@ -113,7 +101,7 @@ body {
     transition: all 0.3s ease;
 }
 
-/* ===== BOTONES GRANDES (MÓVIL) ===== */
+/* ===== BOTONES GRANDES ===== */
 .big-button {
     padding: 15px 20px;
     font-size: 1.1rem;
@@ -124,6 +112,7 @@ body {
     color: white;
     border: none;
     border-radius: 8px;
+    cursor: pointer;
 }
 
 .big-button:hover {
@@ -140,7 +129,8 @@ body {
 #lote-content, #results-content {
     padding: 20px;
     overflow-y: auto;
-    height: 100vh;
+    height: calc(100vh - var(--mobile-header-height));
+    margin-top: var(--mobile-header-height);
 }
 
 /* ===== ESTILOS PARA MÓVILES ===== */
@@ -158,14 +148,14 @@ body {
         position: fixed;
         width: 85%;
         max-width: 300px;
-        left: -100%;
+        transform: translateX(-100%);
         top: var(--mobile-header-height);
         bottom: 0;
         box-shadow: 2px 0 10px rgba(0,0,0,0.2);
     }
     
     #main-nav.active {
-        left: 0;
+        transform: translateX(0);
     }
     
     /* Elementos táctiles más grandes */
@@ -203,149 +193,9 @@ body {
     }
 }
 
-/* ===== [MANTENER RESTO DE ESTILOS] ===== */
-/* ... (Valvulas, Plagas, Tablas, etc. igual que antes) ... */
+/* ===== [ESTILOS ADICIONALES] ===== */
+/* ... (Añade aquí los estilos de válvulas, plagas, tablas que tenías antes) ... */
 
-* {
-    box-sizing: border-box;
-    margin: 0;
-    padding: 0;
-}
-
-body {
-    font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
-    background-color: #f5f7fa;
-    color: #333;
-    display: grid;
-    grid-template-columns: var(--nav-width) 1fr;
-    min-height: 100vh;
-}
-
-h1, h2, h3, h4 {
-    color: var(--dark);
-    margin-bottom: 15px;
-}
-
-button {
-    cursor: pointer;
-    transition: all 0.3s ease;
-    border: none;
-    border-radius: 4px;
-    padding: 8px 12px;
-    font-weight: 500;
-}
-
-input, select {
-    padding: 8px 12px;
-    border: 1px solid #ddd;
-    border-radius: 4px;
-    font-family: inherit;
-}
-
-/* Barra de navegación */
-#main-nav {
-    background: var(--dark);
-    color: white;
-    padding: 15px;
-    height: 100vh;
-    overflow-y: auto;
-    display: flex;
-    flex-direction: column;
-    transition: all 0.3s ease;
-    position: relative;
-    z-index: 100;
-}
-
-.nav-header {
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-    padding-bottom: 15px;
-    border-bottom: 1px solid rgba(255,255,255,0.1);
-    margin-bottom: 15px;
-}
-
-#nav-toggle {
-    background: transparent;
-    color: white;
-    font-size: 1.5rem;
-    padding: 5px;
-    display: none;
-}
-
-.nav-sections {
-    display: flex;
-    flex-direction: column;
-    gap: 20px;
-    flex-grow: 1;
-}
-
-.section-title {
-    font-size: 1.1rem;
-    padding: 10px 0;
-    cursor: pointer;
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-}
-
-.section-title i {
-    transition: transform 0.3s ease;
-    font-size: 0.8rem;
-}
-
-.section-content {
-    overflow: hidden;
-    transition: all 0.3s ease;
-}
-
-#lotes-list, #results-list {
-    list-style: none;
-    overflow-y: auto;
-    max-height: 300px;
-}
-
-#lotes-list li, #results-list li {
-    padding: 10px 15px;
-    margin-bottom: 5px;
-    border-radius: 4px;
-    cursor: pointer;
-    transition: background 0.2s;
-}
-
-#lotes-list li:hover, #results-list li:hover {
-    background: rgba(255,255,255,0.1);
-}
-
-#lotes-list li.active, #results-list li.active {
-    background: var(--primary);
-    font-weight: bold;
-}
-
-#add-lote-btn {
-    width: 100%;
-    background: var(--secondary);
-    color: white;
-    padding: 10px;
-    margin-top: 15px;
-}
-
-#add-lote-btn:hover {
-    background: #27ae60;
-}
-
-/* Contenido principal */
-#app {
-    display: grid;
-    grid-template-columns: 1fr;
-    overflow-x: hidden;
-}
-
-#lote-content, #results-content {
-    padding: 20px;
-    overflow-y: auto;
-    height: 100vh;
-}
 
 /* Estilos para el contenido de lote */
 .lote-header {
