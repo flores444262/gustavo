@@ -1,715 +1,480 @@
 document.addEventListener('DOMContentLoaded', () => {
-    // Estado de la aplicación
-    const state = {
-        lotes: [],
-        currentLoteId: null,
-        currentValvulaId: null,
-        currentView: 'lote',
-        conteos: {},
-        configs: {},
-        navOpen: false
+
+    // ===================================================================================
+    //  1. ESTADO GLOBAL DE LA APLICACIÓN
+    // ===================================================================================
+    let estado = {
+        lotes: {},
+        plagas: [],
+        loteActivo: null,
+        valvulaActivaId: null,
+        fechaUltimaLimpieza: null
     };
 
-    // Elementos del DOM
-    const elements = {
-        lotesList: document.getElementById('lotes-list'),
-        resultsList: document.getElementById('results-list'),
-        addLoteBtn: document.getElementById('add-lote-btn'),
-        loteContent: document.getElementById('lote-content'),
-        resultsContent: document.getElementById('results-content'),
-        resultsContainer: document.getElementById('results-container'),
-        exportExcelBtn: document.getElementById('export-excel'),
-        configContainer: document.getElementById('config-container'),
-        mobileNavToggle: document.getElementById('mobile-nav-toggle'),
-        mainNav: document.getElementById('main-nav')
+    // ===================================================================================
+    //  2. SELECTORES DE ELEMENTOS DEL DOM
+    // ===================================================================================
+    const vistas = document.querySelectorAll('.view');
+    const bienvenida = {
+        vista: document.getElementById('vista-bienvenida'),
+        listaLotes: document.getElementById('lista-seleccion-lotes'),
+        btnCrear: document.getElementById('btn-crear-nuevo-lote'),
+        btnResultados: document.getElementById('btn-ver-resultados'),
+        btnGestionPlagas: document.getElementById('btn-ir-a-gestion-plagas'),
+        btnConfigCalculo: document.getElementById('btn-ir-a-config-calculo'),
+    };
+    const evaluacion = {
+        vista: document.getElementById('vista-evaluacion'),
+        titulo: document.getElementById('evaluacion-titulo-lote'),
+        btnVolver: document.getElementById('btn-volver-inicio'),
+        navValvulas: document.getElementById('nav-valvulas'),
+        btnAgregarValvula: document.getElementById('btn-agregar-valvula'),
+        puntosInput: document.getElementById('puntos-evaluados'),
+        racimosContenedor: document.getElementById('contenedor-racimos'),
+        conteosContenedor: document.getElementById('contenedor-conteos'),
+    };
+    const gestionPlagas = {
+        vista: document.getElementById('vista-gestion-plagas'),
+        inputNueva: document.getElementById('input-nueva-plaga-gestion'),
+        btnAgregar: document.getElementById('btn-agregar-plaga-gestion'),
+        lista: document.getElementById('lista-plagas-gestion'),
+        btnVolver: document.getElementById('btn-volver-inicio-desde-plagas'),
+    };
+    const resultados = {
+        vista: document.getElementById('vista-resultados'),
+        listaLotes: document.getElementById('lista-seleccion-lotes-resultados'),
+        contenido: document.getElementById('contenido-resultados'),
+        tituloLote: document.getElementById('titulo-resultados-lote'),
+        btnExportar: document.getElementById('btn-exportar-excel'),
+        tablaGeneral: document.getElementById('tabla-promedio-general'),
+        tablasValvulas: document.getElementById('tablas-por-valvula'),
+        btnVolver: document.getElementById('btn-volver-inicio-desde-resultados'),
+    };
+    const configCalculo = {
+        vista: document.getElementById('vista-config-calculo'),
+        contenedorFormulas: document.getElementById('contenedor-formulas'),
+        btnGuardar: document.getElementById('btn-guardar-formulas'),
+        btnVolver: document.getElementById('btn-volver-inicio-desde-config'),
     };
 
-    // Funciones auxiliares
-    const helpers = {
-        generateId: () => Date.now().toString(36) + Math.random().toString(36).substr(2),
-        
-        getCurrentLote: () => state.lotes.find(lote => lote.id === state.currentLoteId),
-        
-        getCurrentValvula: () => {
-            const lote = helpers.getCurrentLote();
-            return lote?.valvulas.find(v => v.id === state.currentValvulaId);
-        },
-        
-        calculateAverage: (individuos, puntos, plagaId) => {
-            const config = state.configs[plagaId] || {
-                multiplier: 4,
-                useMultiplier: true,
-                showPercentage: false
-            };
-            
-            const divisor = config.useMultiplier ? puntos * config.multiplier : puntos;
-            if (divisor <= 0) return config.showPercentage ? '0%' : '0';
-            
-            const average = individuos / divisor;
-            return config.showPercentage ? (average * 100).toFixed(2) + '%' : average.toFixed(4);
-        },
-        
-        getTotalIndividuos: (lote) => {
-            return lote.valvulas.reduce((total, valvula) => {
-                return total + lote.plagas.reduce((sum, plaga) => {
-                    return sum + (state.conteos[lote.id]?.[valvula.id]?.[plaga.id] || 0);
-                }, 0);
-            }, 0);
-        },
-        
-        getTotalPuntos: (lote) => {
-            return lote.valvulas.reduce((sum, valvula) => sum + valvula.valor, 0);
-        },
-        
-        addPlagaToAllValvulas: (plaga) => {
-            const lote = helpers.getCurrentLote();
-            if (!lote) return;
-            
-            lote.valvulas.forEach(valvula => {
-                if (!state.conteos[lote.id]) state.conteos[lote.id] = {};
-                if (!state.conteos[lote.id][valvula.id]) state.conteos[lote.id][valvula.id] = {};
-                state.conteos[lote.id][valvula.id][plaga.id] = 0;
-            });
-        },
-        
-        exportToExcel: () => {
-            const lote = helpers.getCurrentLote();
-            if (!lote) return;
-            
-            const data = [];
-            
-            // Encabezados
-            data.push(['Válvula', 'Plaga', 'Individuos', 'Puntos', 'Multiplicador', 'Promedio']);
-            
-            // Datos
-            lote.valvulas.forEach(valvula => {
-                lote.plagas.forEach(plaga => {
-                    const conteo = state.conteos[lote.id]?.[valvula.id]?.[plaga.id] || 0;
-                    const config = state.configs[plaga.id] || {};
-                    const promedio = helpers.calculateAverage(conteo, valvula.valor, plaga.id);
-                    
-                    data.push([
-                        `Válvula ${valvula.numero}`,
-                        plaga.nombre,
-                        conteo,
-                        valvula.valor,
-                        config.useMultiplier ? config.multiplier : 'No',
-                        promedio
-                    ]);
-                });
-            });
-            
-            // Totales
-            data.push([]);
-            data.push(['TOTAL LOTE', '', helpers.getTotalIndividuos(lote), helpers.getTotalPuntos(lote), '', helpers.calculateLoteAverage(lote)]);
-            
-            // Crear libro Excel
-            const wb = XLSX.utils.book_new();
-            const ws = XLSX.utils.aoa_to_sheet(data);
-            XLSX.utils.book_append_sheet(wb, ws, "Resultados");
-            
-            // Exportar
-            XLSX.writeFile(wb, `Resultados_${lote.nombre}.xlsx`);
-        },
-        
-        calculateLoteAverage: (lote) => {
-            const totalIndividuos = helpers.getTotalIndividuos(lote);
-            const totalPuntos = helpers.getTotalPuntos(lote);
-            return totalPuntos > 0 ? (totalIndividuos / totalPuntos).toFixed(4) : '0';
+    // ===================================================================================
+    //  3. PERSISTENCIA DE DATOS (localStorage)
+    // ===================================================================================
+    const guardarEstado = () => localStorage.setItem('estadoAppAgricola', JSON.stringify(estado));
+    const cargarEstado = () => {
+        const estadoGuardado = localStorage.getItem('estadoAppAgricola');
+        if (estadoGuardado) {
+            estado = JSON.parse(estadoGuardado);
         }
     };
 
-    // Renderizado
-    const render = {
-        initMobileNav: () => {
-            elements.mobileNavToggle.addEventListener('click', (e) => {
-                e.stopPropagation();
-                state.navOpen = !state.navOpen;
-                elements.mainNav.classList.toggle('active');
-            });
+    // ===================================================================================
+    //  4. LÓGICA DE NAVEGACIÓN ENTRE VISTAS
+    // ===================================================================================
+    const mostrarVista = (idVista) => {
+        vistas.forEach(vista => vista.classList.add('hidden'));
+        document.getElementById(idVista).classList.remove('hidden');
+    };
 
-            document.addEventListener('click', (e) => {
-                if (state.navOpen && 
-                    !e.target.closest('#main-nav') && 
-                    e.target !== elements.mobileNavToggle) {
-                    state.navOpen = false;
-                    elements.mainNav.classList.remove('active');
-                }
+    // ===================================================================================
+    //  5. FUNCIONES DE RENDERIZADO (DIBUJAR LA INTERFAZ)
+    // ===================================================================================
+    
+    // *** FUNCIÓN CORREGIDA: Usa document.createElement para crear los botones ***
+    const renderBienvenida = () => {
+        // Limpiamos el contenedor
+        bienvenida.listaLotes.innerHTML = '<h3>Selecciona un Lote:</h3>';
+        
+        const nombresLotes = Object.keys(estado.lotes);
+        if (nombresLotes.length === 0) {
+            const p = document.createElement('p');
+            p.textContent = 'No hay lotes creados.';
+            bienvenida.listaLotes.appendChild(p);
+        } else {
+            nombresLotes.forEach(nombreLote => {
+                const button = document.createElement('button');
+                button.className = 'btn lote-select-btn';
+                button.dataset.lote = nombreLote;
+                button.textContent = nombreLote;
+                bienvenida.listaLotes.appendChild(button);
             });
-        },
-        
-        updateNav: () => {
-            elements.lotesList.innerHTML = '';
-            elements.resultsList.innerHTML = '';
-            
-            state.lotes.forEach(lote => {
-                // Lista de lotes
-                const liLote = document.createElement('li');
-                liLote.textContent = lote.nombre;
-                liLote.classList.toggle('active', lote.id === state.currentLoteId && state.currentView === 'lote');
-                liLote.addEventListener('click', () => {
-                    state.currentLoteId = lote.id;
-                    state.currentView = 'lote';
-                    render.showView();
-                    render.loteContent();
-                    if (window.innerWidth <= 768) {
-                        state.navOpen = false;
-                        elements.mainNav.classList.remove('active');
-                    }
-                });
-                elements.lotesList.appendChild(liLote);
-                
-                // Lista de resultados
-                const liResult = document.createElement('li');
-                liResult.textContent = lote.nombre;
-                liResult.classList.toggle('active', lote.id === state.currentLoteId && state.currentView === 'results');
-                liResult.addEventListener('click', () => {
-                    state.currentLoteId = lote.id;
-                    state.currentView = 'results';
-                    render.showView();
-                    render.resultsContent();
-                    if (window.innerWidth <= 768) {
-                        state.navOpen = false;
-                        elements.mainNav.classList.remove('active');
-                    }
-                });
-                elements.resultsList.appendChild(liResult);
-            });
-        },
-        
-        showView: () => {
-            elements.loteContent.style.display = state.currentView === 'lote' ? 'block' : 'none';
-            elements.resultsContent.style.display = state.currentView === 'results' ? 'block' : 'none';
-            
-            if (state.currentView === 'results') {
-                render.resultsContent();
-            }
-        },
-        
-        loteContent: () => {
-            const lote = helpers.getCurrentLote();
-            if (!lote) {
-                elements.loteContent.innerHTML = '<p>Seleccione un lote</p>';
-                return;
-            }
-            
-            let html = `
-                <div class="lote-header">
-                    <h3>${lote.nombre}</h3>
-                </div>
-            `;
-            
-            if (lote.valvulas.length > 0) {
-                html += `<div class="valvulas-nav" id="valvulas-nav"></div>`;
-            }
-            
-            html += `
-                <div id="valvulas-content"></div>
-                <button id="add-valvula-btn" class="big-button">+ Agregar Válvula</button>
-            `;
-            
-            elements.loteContent.innerHTML = html;
-            
-            if (lote.valvulas.length > 0) {
-                render.valvulasNav();
-                render.valvulasContent();
-                
-                if (!state.currentValvulaId) {
-                    state.currentValvulaId = lote.valvulas[0].id;
-                    render.valvulasNav();
-                    render.valvulasContent();
-                }
-            }
-            
-            document.getElementById('add-valvula-btn')?.addEventListener('click', handlers.addValvula);
-        },
-        
-        valvulasNav: () => {
-            const lote = helpers.getCurrentLote();
-            if (!lote) return;
-            
-            const nav = document.getElementById('valvulas-nav');
-            if (!nav) return;
-            
-            nav.innerHTML = '';
-            
-            lote.valvulas.forEach(valvula => {
-                const tab = document.createElement('div');
-                tab.className = `valvula-tab ${valvula.id === state.currentValvulaId ? 'active' : ''}`;
-                tab.textContent = `Válvula ${valvula.numero}`;
-                tab.addEventListener('click', () => {
-                    state.currentValvulaId = valvula.id;
-                    render.valvulasNav();
-                    render.valvulasContent();
-                });
-                nav.appendChild(tab);
-            });
-        },
-        
-        valvulasContent: () => {
-            const lote = helpers.getCurrentLote();
-            const valvula = helpers.getCurrentValvula();
-            if (!lote || !valvula) return;
-            
-            const container = document.getElementById('valvulas-content');
-            if (!container) return;
-            
-            let html = `
-                <div class="valvula-content active">
-                    <div class="config-section">
-                        <h4>Configuración de Válvula ${valvula.numero}</h4>
-                        <div class="config-item">
-                            <label>Puntos evaluados:</label>
-                            <input type="number" id="valvula-puntos" value="${valvula.valor}" min="0" step="0.1">
-                        </div>
-                    </div>
-                    
-                    <div class="plagas-section">
-                        <h4>Plagas</h4>
-                        <div class="plaga-list" id="plaga-list"></div>
-                        <div class="add-plaga-container">
-                            <input type="text" id="new-plaga-nombre" placeholder="Nombre de plaga">
-                            <button id="add-plaga-btn" class="big-button">Agregar Plaga</button>
-                            <button id="add-plaga-all-btn" class="big-button add-to-all-btn">Agregar a todas</button>
-                        </div>
-                    </div>
-                    
-                    <div class="conteos-section">
-                        <h4>Conteos</h4>
-                        <div id="conteos-container"></div>
-                    </div>
-                </div>
-            `;
-            
-            container.innerHTML = html;
-            
-            // Event listeners
-            document.getElementById('valvula-puntos')?.addEventListener('input', (e) => {
-                valvula.valor = parseFloat(e.target.value) || 0;
-            });
-            
-            document.getElementById('add-plaga-btn')?.addEventListener('click', handlers.addPlaga);
-            document.getElementById('add-plaga-all-btn')?.addEventListener('click', handlers.addPlagaToAll);
-            
-            render.plagasList();
-            render.conteosContainer();
-        },
-        
-        plagasList: () => {
-            const lote = helpers.getCurrentLote();
-            if (!lote) return;
-            
-            const container = document.getElementById('plaga-list');
-            if (!container) return;
-            
-            container.innerHTML = '';
-            
-            lote.plagas.forEach(plaga => {
-                const plagaItem = document.createElement('div');
-                plagaItem.className = 'plaga-item';
-                plagaItem.innerHTML = `
-                    <div class="plaga-info">
-                        <h5>${plaga.nombre}</h5>
-                    </div>
-                    <div class="plaga-controls">
-                        <button class="delete-btn delete-plaga" data-plaga="${plaga.id}">✕</button>
-                    </div>
-                `;
-                
-                // Eliminar plaga
-                plagaItem.querySelector('.delete-plaga')?.addEventListener('click', (e) => {
-                    handlers.deletePlaga(e.target.dataset.plaga);
-                });
-                
-                container.appendChild(plagaItem);
-            });
-        },
-        
-        conteosContainer: () => {
-            const lote = helpers.getCurrentLote();
-            const valvula = helpers.getCurrentValvula();
-            if (!lote || !valvula) return;
-            
-            const container = document.getElementById('conteos-container');
-            if (!container) return;
-            
-            // Inicializar conteos si no existen
-            if (!state.conteos[lote.id]) state.conteos[lote.id] = {};
-            if (!state.conteos[lote.id][valvula.id]) state.conteos[lote.id][valvula.id] = {};
-            
-            container.innerHTML = '';
-            
-            lote.plagas.forEach(plaga => {
-                if (!state.conteos[lote.id][valvula.id][plaga.id]) {
-                    state.conteos[lote.id][valvula.id][plaga.id] = 0;
-                }
-                
-                const conteoDiv = document.createElement('div');
-                conteoDiv.className = 'conteo-item';
-                
-                const conteoId = `conteo-${valvula.id}-${plaga.id}`;
-                const currentTotal = state.conteos[lote.id][valvula.id][plaga.id] || 0;
-                
-                conteoDiv.innerHTML = `
-                    <label>${plaga.nombre}</label>
-                    <div class="conteo-controls">
-                        <input type="number" id="${conteoId}" min="0" placeholder="0">
-                        <button class="add-conteo big-button" data-plaga="${plaga.id}">Agregar</button>
-                        <span class="conteo-total">Total: ${currentTotal}</span>
-                    </div>
-                `;
-                
-                // Event listener para agregar conteo
-                conteoDiv.querySelector('.add-conteo')?.addEventListener('click', (e) => {
-                    const input = document.getElementById(`conteo-${valvula.id}-${e.target.dataset.plaga}`);
-                    const cantidad = parseInt(input.value) || 0;
-                    
-                    if (cantidad > 0) {
-                        state.conteos[lote.id][valvula.id][e.target.dataset.plaga] += cantidad;
-                        input.value = '';
-                        render.conteosContainer();
-                    }
-                });
-                
-                container.appendChild(conteoDiv);
-            });
-        },
-        
-        configContent: () => {
-            const lote = helpers.getCurrentLote();
-            if (!lote) return;
-            
-            elements.configContainer.innerHTML = '';
-            
-            if (lote.plagas.length === 0) {
-                elements.configContainer.innerHTML = '<p>No hay plagas configuradas</p>';
-                return;
-            }
-            
-            const configDiv = document.createElement('div');
-            configDiv.className = 'config-section';
-            configDiv.innerHTML = '<h4>Configuración de Cálculos</h4>';
-            
-            lote.plagas.forEach(plaga => {
-                if (!state.configs[plaga.id]) {
-                    state.configs[plaga.id] = {
-                        multiplier: 4,
-                        useMultiplier: true,
-                        showPercentage: false
-                    };
-                }
-                
-                const config = state.configs[plaga.id];
-                const configId = `config-${plaga.id}`;
-                
-                const plagaConfig = document.createElement('div');
-                plagaConfig.className = 'config-item';
-                plagaConfig.innerHTML = `
-                    <h5>${plaga.nombre}</h5>
-                    <div class="config-grid">
-                        <div class="config-item">
-                            <label>Multiplicador:</label>
-                            <input type="number" id="${configId}-multiplier" value="${config.multiplier}" min="1">
-                        </div>
-                        <div class="config-item">
-                            <label>
-                                <input type="checkbox" id="${configId}-use-multiplier" ${config.useMultiplier ? 'checked' : ''}>
-                                Usar multiplicador
-                            </label>
-                        </div>
-                        <div class="config-item">
-                            <label>
-                                <input type="checkbox" id="${configId}-show-percentage" ${config.showPercentage ? 'checked' : ''}>
-                                Mostrar porcentaje
-                            </label>
-                        </div>
-                    </div>
-                `;
-                
-                // Configuración
-                plagaConfig.querySelector(`#${configId}-multiplier`)?.addEventListener('change', (e) => {
-                    config.multiplier = parseInt(e.target.value) || 1;
-                    render.resultsContainerContent();
-                });
-                
-                plagaConfig.querySelector(`#${configId}-use-multiplier`)?.addEventListener('change', (e) => {
-                    config.useMultiplier = e.target.checked;
-                    render.resultsContainerContent();
-                });
-                
-                plagaConfig.querySelector(`#${configId}-show-percentage`)?.addEventListener('change', (e) => {
-                    config.showPercentage = e.target.checked;
-                    render.resultsContainerContent();
-                });
-                
-                configDiv.appendChild(plagaConfig);
-            });
-            
-            elements.configContainer.appendChild(configDiv);
-        },
-        
-        resultsContainerContent: () => {
-            const lote = helpers.getCurrentLote();
-            if (!lote) {
-                elements.resultsContainer.innerHTML = '<p>Seleccione un lote para ver resultados</p>';
-                return;
-            }
-            
-            let html = `
-                <table class="results-table">
-                    <thead>
-                        <tr>
-                            <th rowspan="2">Válvula</th>
-                            <th rowspan="2">Plaga</th>
-                            <th rowspan="2">Individuos</th>
-                            <th rowspan="2">Puntos</th>
-                            <th colspan="2">Cálculo</th>
-                            <th rowspan="2">Promedio</th>
-                        </tr>
-                        <tr>
-                            <th>Multiplicador</th>
-                            <th>Fórmula</th>
-                        </tr>
-                    </thead>
-                    <tbody>
-            `;
-            
-            // Datos por válvula
-            lote.valvulas.forEach(valvula => {
-                let valvulaTotal = 0;
-                let isFirstPlaga = true;
-                
-                lote.plagas.forEach(plaga => {
-                    const conteo = state.conteos[lote.id]?.[valvula.id]?.[plaga.id] || 0;
-                    valvulaTotal += conteo;
-                    const config = state.configs[plaga.id] || {};
-                    const promedio = helpers.calculateAverage(conteo, valvula.valor, plaga.id);
-                    
-                    html += `
-                        <tr>
-                            ${isFirstPlaga ? `<td rowspan="${lote.plagas.length}">Válvula ${valvula.numero}</td>` : ''}
-                            <td>${plaga.nombre}</td>
-                            <td>${conteo}</td>
-                            <td>${valvula.valor}</td>
-                            <td>${config.useMultiplier ? config.multiplier : 'No'}</td>
-                            <td>${conteo} / ${config.useMultiplier ? `(${valvula.valor} × ${config.multiplier})` : valvula.valor}</td>
-                            <td class="${config.showPercentage ? 'percentage' : ''}">${promedio}</td>
-                        </tr>
-                    `;
-                    
-                    isFirstPlaga = false;
-                });
-                
-                // Total por válvula
-                html += `
-                    <tr class="total-row">
-                        <td colspan="2">Total Válvula ${valvula.numero}</td>
-                        <td>${valvulaTotal}</td>
-                        <td>${valvula.valor}</td>
-                        <td colspan="3"></td>
-                    </tr>
-                `;
-            });
-            
-            // Total general
-            const totalGeneral = helpers.getTotalIndividuos(lote);
-            const totalPuntos = helpers.getTotalPuntos(lote);
-            
-            html += `
-                    <tr class="lote-total">
-                        <td colspan="2">Total Lote</td>
-                        <td>${totalGeneral}</td>
-                        <td>${totalPuntos}</td>
-                        <td colspan="2">${totalGeneral} / ${totalPuntos}</td>
-                        <td>${(totalGeneral / totalPuntos).toFixed(4)}</td>
-                    </tr>
-                </tbody>
-                </table>
-            `;
-            
-            elements.resultsContainer.innerHTML = html;
-        },
-        
-        resultsContent: () => {
-            document.getElementById('results-title').textContent = `Resultados: ${helpers.getCurrentLote()?.nombre || ''}`;
-            render.configContent();
-            render.resultsContainerContent();
         }
     };
 
-    // Manejadores de eventos
-    const handlers = {
-        addLote: () => {
-            const nombre = prompt('Ingrese el nombre del nuevo lote (ej: LOTE-2709-A):');
-            if (nombre) {
-                const nuevoLote = {
-                    id: helpers.generateId(),
-                    nombre,
-                    valvulas: [],
-                    plagas: []
-                };
-                state.lotes.push(nuevoLote);
-                state.currentLoteId = nuevoLote.id;
-                state.currentView = 'lote';
-                render.updateNav();
-                render.showView();
-                render.loteContent();
-            }
-        },
+    const renderEvaluacion = () => {
+        if (!estado.loteActivo || !estado.lotes[estado.loteActivo]) return;
         
-        addValvula: () => {
-            const lote = helpers.getCurrentLote();
-            if (!lote) return;
-            
-            const numero = parseInt(prompt('Número de la válvula:', lote.valvulas.length + 1)) || 1;
-            const nuevaValvula = {
-                id: helpers.generateId(),
-                numero,
-                valor: 0
-            };
-            
-            lote.valvulas.push(nuevaValvula);
-            state.currentValvulaId = nuevaValvula.id;
-            
-            // Inicializar conteos para todas las plagas en esta válvula
-            lote.plagas.forEach(plaga => {
-                if (!state.conteos[lote.id]) state.conteos[lote.id] = {};
-                if (!state.conteos[lote.id][nuevaValvula.id]) state.conteos[lote.id][nuevaValvula.id] = {};
-                state.conteos[lote.id][nuevaValvula.id][plaga.id] = 0;
-            });
-            
-            render.loteContent();
-        },
-        
-        addPlaga: () => {
-            const lote = helpers.getCurrentLote();
-            if (!lote) return;
-            
-            const nombre = document.getElementById('new-plaga-nombre')?.value.trim();
-            if (!nombre) return;
-            
-            const nuevaPlaga = {
-                id: helpers.generateId(),
-                nombre
-            };
-            
-            lote.plagas.push(nuevaPlaga);
-            state.configs[nuevaPlaga.id] = {
-                multiplier: 4,
-                useMultiplier: true,
-                showPercentage: false
-            };
-            
-            // Inicializar conteos para esta plaga en la válvula actual
-            const valvula = helpers.getCurrentValvula();
-            if (valvula) {
-                if (!state.conteos[lote.id]) state.conteos[lote.id] = {};
-                if (!state.conteos[lote.id][valvula.id]) state.conteos[lote.id][valvula.id] = {};
-                state.conteos[lote.id][valvula.id][nuevaPlaga.id] = 0;
-            }
-            
-            document.getElementById('new-plaga-nombre').value = '';
-            render.plagasList();
-            render.conteosContainer();
-            render.resultsContent();
-        },
-        
-        addPlagaToAll: () => {
-            const lote = helpers.getCurrentLote();
-            if (!lote) return;
-            
-            const nombre = document.getElementById('new-plaga-nombre')?.value.trim();
-            if (!nombre) return;
-            
-            const nuevaPlaga = {
-                id: helpers.generateId(),
-                nombre
-            };
-            
-            lote.plagas.push(nuevaPlaga);
-            state.configs[nuevaPlaga.id] = {
-                multiplier: 4,
-                useMultiplier: true,
-                showPercentage: false
-            };
-            
-            // Inicializar conteos para esta plaga en todas las válvulas
-            helpers.addPlagaToAllValvulas(nuevaPlaga);
-            
-            document.getElementById('new-plaga-nombre').value = '';
-            render.plagasList();
-            render.conteosContainer();
-            render.resultsContent();
-        },
-        
-        deletePlaga: (plagaId) => {
-            const lote = helpers.getCurrentLote();
-            if (!lote) return;
-            
-            lote.plagas = lote.plagas.filter(p => p.id !== plagaId);
-            delete state.configs[plagaId];
-            
-            lote.valvulas.forEach(valvula => {
-                if (state.conteos[lote.id]?.[valvula.id]) {
-                    delete state.conteos[lote.id][valvula.id][plagaId];
-                }
-            });
-            
-            render.plagasList();
-            render.conteosContainer();
-            render.resultsContent();
-        }
-    };
+        const lote = estado.lotes[estado.loteActivo];
+        evaluacion.titulo.textContent = `Evaluando: ${estado.loteActivo}`;
 
-    // Inicialización
-    elements.addLoteBtn.addEventListener('click', handlers.addLote);
-    elements.exportExcelBtn?.addEventListener('click', helpers.exportToExcel);
-    
-    // Lote de ejemplo
-    const loteEjemplo = {
-        id: helpers.generateId(),
-        nombre: 'LOTE-2709-A',
-        valvulas: [
-            { id: helpers.generateId(), numero: 1, valor: 35 },
-            { id: helpers.generateId(), numero: 2, valor: 40 }
-        ],
-        plagas: [
-            { id: helpers.generateId(), nombre: 'Trips occidentalis' },
-            { id: helpers.generateId(), nombre: 'Mosca blanca' }
-        ]
-    };
-    
-    state.lotes.push(loteEjemplo);
-    state.currentLoteId = loteEjemplo.id;
-    state.currentValvulaId = loteEjemplo.valvulas[0].id;
-    
-    // Configuración inicial
-    loteEjemplo.plagas.forEach(plaga => {
-        state.configs[plaga.id] = {
-            multiplier: 4,
-            useMultiplier: true,
-            showPercentage: false
-        };
-    });
-    
-    // Conteos iniciales
-    state.conteos[loteEjemplo.id] = {};
-    loteEjemplo.valvulas.forEach(valvula => {
-        state.conteos[loteEjemplo.id][valvula.id] = {};
-        loteEjemplo.plagas.forEach(plaga => {
-            state.conteos[loteEjemplo.id][valvula.id][plaga.id] = 0;
+        evaluacion.navValvulas.innerHTML = '';
+        lote.valvulas.forEach(valvula => {
+            const tab = document.createElement('div');
+            tab.className = 'tab-item';
+            tab.dataset.id = valvula.id;
+            
+            const nombreSpan = document.createElement('span');
+            nombreSpan.textContent = valvula.nombre;
+            nombreSpan.className = 'valvula-nombre';
+            
+            const editBtn = document.createElement('span');
+            editBtn.textContent = ' ✏️';
+            editBtn.className = 'edit-valvula-btn';
+            editBtn.title = 'Editar nombre';
+
+            tab.appendChild(nombreSpan);
+            tab.appendChild(editBtn);
+
+            if (valvula.id == estado.valvulaActivaId) tab.classList.add('active');
+            evaluacion.navValvulas.appendChild(tab);
         });
+
+        renderContenidoValvula();
+    };
+    
+    const renderContenidoValvula = () => {
+        const valvula = estado.lotes[estado.loteActivo]?.valvulas.find(v => v.id == estado.valvulaActivaId);
+        if (!valvula) {
+            evaluacion.puntosInput.value = 1;
+            evaluacion.racimosContenedor.innerHTML = '';
+            evaluacion.conteosContenedor.innerHTML = '';
+            return;
+        };
+
+        evaluacion.puntosInput.value = valvula.puntosEvaluados;
+
+        evaluacion.racimosContenedor.innerHTML = '';
+        for (let i = 0; i < valvula.puntosEvaluados; i++) {
+            evaluacion.racimosContenedor.innerHTML += `
+                <label>Racimos Punto ${i + 1}:</label>
+                <input type="number" class="racimo-input" data-punto="${i}" value="${valvula.racimos[i] || ''}">
+            `;
+        }
+        
+        evaluacion.conteosContenedor.innerHTML = '';
+        estado.plagas.forEach(plaga => {
+            const conteo = valvula.conteos[plaga.nombre] || [];
+            evaluacion.conteosContenedor.innerHTML += `
+                <div>
+                    <h4>${plaga.nombre}</h4>
+                    <input type="number" class="conteo-input" data-plaga="${plaga.nombre}" placeholder="Agregar conteo...">
+                    <p>Registrados: ${conteo.join(', ')} | <strong>Total: ${conteo.reduce((a, b) => a + b, 0)}</strong></p>
+                </div>
+            `;
+        });
+    };
+    
+    const renderGestionPlagas = () => {
+        gestionPlagas.lista.innerHTML = '';
+        estado.plagas.forEach(plaga => {
+            gestionPlagas.lista.innerHTML += `
+                <li>
+                    <span>${plaga.nombre}</span>
+                    <button class="delete-btn" data-plaga="${plaga.nombre}">Eliminar</button>
+                </li>
+            `;
+        });
+    };
+    
+    const renderConfigCalculo = () => {
+        configCalculo.contenedorFormulas.innerHTML = '<h3>Fórmulas por Plaga</h3>';
+        estado.plagas.forEach(plaga => {
+            configCalculo.contenedorFormulas.innerHTML += `
+                <div>
+                    <label for="formula-${plaga.nombre}">${plaga.nombre}:</label>
+                    <input type="text" id="formula-${plaga.nombre}" class="formula-input" data-plaga="${plaga.nombre}" value="${plaga.formula}">
+                    <small>Variables: I (Individuos), P (Puntos), R (Suma de Racimos)</small>
+                </div>
+            `;
+        });
+    };
+
+    // *** FUNCIÓN CORREGIDA: También usa document.createElement para los botones ***
+    const renderResultados = () => {
+        resultados.listaLotes.innerHTML = '<h3>Selecciona un Lote:</h3>';
+        const lotesModificadosHoy = Object.keys(estado.lotes).filter(nombreLote => {
+             const lote = estado.lotes[nombreLote];
+             return lote.ultimaModificacion && new Date(lote.ultimaModificacion).toDateString() === new Date().toDateString();
+        });
+
+        if (lotesModificadosHoy.length === 0) {
+            const p = document.createElement('p');
+            p.textContent = 'Ningún lote ha sido modificado hoy.';
+            resultados.listaLotes.appendChild(p);
+        } else {
+            lotesModificadosHoy.forEach(nombreLote => {
+                 const button = document.createElement('button');
+                 button.className = 'btn lote-select-resultados-btn';
+                 button.dataset.lote = nombreLote;
+                 button.textContent = nombreLote;
+                 resultados.listaLotes.appendChild(button);
+            });
+        }
+        resultados.contenido.classList.add('hidden');
+    };
+    
+    const renderTablaResultados = (nombreLote) => {
+        const lote = estado.lotes[nombreLote];
+        if (!lote) return;
+
+        resultados.tituloLote.textContent = `Resultados para: ${nombreLote}`;
+        
+        let totalPuntos = 0;
+        let totalRacimos = 0;
+        const totalIndividuos = {}; 
+
+        lote.valvulas.forEach(valvula => {
+            totalPuntos += valvula.puntosEvaluados;
+            totalRacimos += valvula.racimos.reduce((a, b) => a + b, 0);
+            for (const pNombre in valvula.conteos) {
+                const sumaConteo = valvula.conteos[pNombre].reduce((a, b) => a + b, 0);
+                totalIndividuos[pNombre] = (totalIndividuos[pNombre] || 0) + sumaConteo;
+            }
+        });
+        
+        let tablaGeneralHTML = `<thead><tr><th>Plaga</th><th>Total Individuos</th><th>Promedio General</th></tr></thead><tbody>`;
+        estado.plagas.forEach(plaga => {
+            const I = totalIndividuos[plaga.nombre] || 0;
+            const P = totalPuntos;
+            const R = totalRacimos;
+            let promedio = 0;
+            try {
+                 promedio = new Function('I', 'P', 'R', `return ${plaga.formula}`)(I, P, R);
+            } catch (e) { console.error('Error en formula:', e); }
+
+            tablaGeneralHTML += `<tr><td>${plaga.nombre}</td><td>${I}</td><td>${promedio.toFixed(4)}</td></tr>`;
+        });
+        resultados.tablaGeneral.innerHTML = tablaGeneralHTML + '</tbody>';
+
+        let tablasValvulasHTML = '';
+        lote.valvulas.forEach(valvula => {
+            tablasValvulasHTML += `<h4>${valvula.nombre}</h4><table><thead><tr><th>Plaga</th><th>Total Individuos</th><th>Promedio</th></tr></thead><tbody>`;
+            estado.plagas.forEach(plaga => {
+                const I = (valvula.conteos[plaga.nombre] || []).reduce((a,b) => a+b, 0);
+                const P = valvula.puntosEvaluados;
+                const R = valvula.racimos.reduce((a, b) => a+b, 0);
+                let promedio = 0;
+                try {
+                    promedio = new Function('I', 'P', 'R', `return ${plaga.formula}`)(I, P, R);
+                } catch (e) { console.error('Error en formula:', e); }
+
+                tablasValvulasHTML += `<tr><td>${plaga.nombre}</td><td>${I}</td><td>${promedio.toFixed(4)}</td></tr>`;
+            });
+            tablasValvulasHTML += `</tbody></table>`;
+        });
+        resultados.tablasValvulas.innerHTML = tablasValvulasHTML;
+        resultados.contenido.classList.remove('hidden');
+    };
+
+    // ===================================================================================
+    //  6. LÓGICA DE LA APLICACIÓN Y MANEJADORES DE EVENTOS
+    // ===================================================================================
+
+    // --- Navegación ---
+    bienvenida.btnGestionPlagas.addEventListener('click', () => { renderGestionPlagas(); mostrarVista('vista-gestion-plagas'); });
+    bienvenida.btnConfigCalculo.addEventListener('click', () => { renderConfigCalculo(); mostrarVista('vista-config-calculo'); });
+    bienvenida.btnResultados.addEventListener('click', () => { renderResultados(); mostrarVista('vista-resultados'); });
+    evaluacion.btnVolver.addEventListener('click', () => mostrarVista('vista-bienvenida'));
+    gestionPlagas.btnVolver.addEventListener('click', () => { guardarEstado(); mostrarVista('vista-bienvenida'); });
+    configCalculo.btnVolver.addEventListener('click', () => mostrarVista('vista-bienvenida'));
+    resultados.btnVolver.addEventListener('click', () => mostrarVista('vista-bienvenida'));
+
+    // --- Lógica de Bienvenida ---
+    bienvenida.btnCrear.addEventListener('click', () => {
+        const nombreLote = prompt('Ingrese el nombre del nuevo lote:');
+        if (nombreLote && !estado.lotes[nombreLote]) {
+            estado.lotes[nombreLote] = { valvulas: [], ultimaModificacion: null };
+            renderBienvenida();
+            guardarEstado();
+        } else if (estado.lotes[nombreLote]) {
+            alert('El lote ya existe.');
+        }
+    });
+
+    bienvenida.listaLotes.addEventListener('click', (e) => {
+        const targetButton = e.target.closest('.lote-select-btn');
+        if (targetButton) {
+            estado.loteActivo = targetButton.dataset.lote;
+            const lote = estado.lotes[estado.loteActivo];
+            if (lote.valvulas.length === 0) {
+                 const idUnico = Date.now();
+                 lote.valvulas.push({ id: idUnico, nombre: "Válvula 1", puntosEvaluados: 7, racimos: [], conteos: {} });
+                 estado.valvulaActivaId = idUnico;
+            } else {
+                estado.valvulaActivaId = lote.valvulas[0].id;
+            }
+            renderEvaluacion();
+            mostrarVista('vista-evaluacion');
+        }
+    });
+
+    // --- Lógica de Evaluación ---
+    evaluacion.btnAgregarValvula.addEventListener('click', () => {
+        const nombreValvula = prompt("Ingrese el nombre para la nueva válvula:", `Válvula ${estado.lotes[estado.loteActivo].valvulas.length + 1}`);
+        if (!nombreValvula) return;
+
+        const idUnico = Date.now();
+        estado.lotes[estado.loteActivo].valvulas.push({ id: idUnico, nombre: nombreValvula, puntosEvaluados: 7, racimos: [], conteos: {} });
+        estado.valvulaActivaId = idUnico;
+        renderEvaluacion();
+        guardarEstado();
+    });
+
+    evaluacion.navValvulas.addEventListener('click', (e) => {
+        const tab = e.target.closest('.tab-item');
+        if (!tab) return;
+
+        if (e.target.matches('.edit-valvula-btn')) {
+            const valvulaId = tab.dataset.id;
+            const valvula = estado.lotes[estado.loteActivo].valvulas.find(v => v.id == valvulaId);
+            const nuevoNombre = prompt(`Editar nombre de "${valvula.nombre}":`, valvula.nombre);
+            if (nuevoNombre) {
+                valvula.nombre = nuevoNombre;
+                renderEvaluacion();
+                guardarEstado();
+            }
+        } else {
+            estado.valvulaActivaId = tab.dataset.id;
+            renderEvaluacion();
+        }
     });
     
-    // Inicializar navegación responsive
-    render.initMobileNav();
-    
-    // Manejar cambios de tamaño de pantalla
-    window.addEventListener('resize', () => {
-        render.initMobileNav();
+    evaluacion.puntosInput.addEventListener('change', (e) => {
+        const valvula = estado.lotes[estado.loteActivo].valvulas.find(v => v.id == estado.valvulaActivaId);
+        if(!valvula) return;
+        valvula.puntosEvaluados = parseInt(e.target.value) || 1;
+        estado.lotes[estado.loteActivo].ultimaModificacion = new Date().toISOString();
+        renderContenidoValvula();
+        guardarEstado();
+    });
+
+    evaluacion.racimosContenedor.addEventListener('change', (e) => {
+        if (e.target.matches('.racimo-input')) {
+            const punto = parseInt(e.target.dataset.punto);
+            const valor = parseInt(e.target.value) || 0;
+            const valvula = estado.lotes[estado.loteActivo].valvulas.find(v => v.id == estado.valvulaActivaId);
+            if(!valvula) return;
+            valvula.racimos[punto] = valor;
+            estado.lotes[estado.loteActivo].ultimaModificacion = new Date().toISOString();
+            guardarEstado();
+        }
+    });
+
+    evaluacion.conteosContenedor.addEventListener('change', (e) => {
+        if (e.target.matches('.conteo-input') && e.target.value) {
+            const plaga = e.target.dataset.plaga;
+            const valor = parseInt(e.target.value);
+            const valvula = estado.lotes[estado.loteActivo].valvulas.find(v => v.id == estado.valvulaActivaId);
+            if(!valvula) return;
+            if (!valvula.conteos[plaga]) valvula.conteos[plaga] = [];
+            valvula.conteos[plaga].push(valor);
+            estado.lotes[estado.loteActivo].ultimaModificacion = new Date().toISOString();
+            renderContenidoValvula();
+            guardarEstado();
+        }
+    });
+
+    // --- Lógica de Gestión de Plagas ---
+    gestionPlagas.btnAgregar.addEventListener('click', () => {
+        const nombrePlaga = gestionPlagas.inputNueva.value.trim();
+        if (nombrePlaga && !estado.plagas.some(p => p.nombre === nombrePlaga)) {
+            estado.plagas.push({ nombre: nombrePlaga, formula: "I / (P * 4)" });
+            renderGestionPlagas();
+            gestionPlagas.inputNueva.value = '';
+        }
+    });
+
+    gestionPlagas.lista.addEventListener('click', (e) => {
+        if (e.target.matches('.delete-btn')) {
+            const nombrePlaga = e.target.dataset.plaga;
+            estado.plagas = estado.plagas.filter(p => p.nombre !== nombrePlaga);
+            renderGestionPlagas();
+        }
+    });
+
+    // --- Lógica de Configuración de Cálculos ---
+    configCalculo.btnGuardar.addEventListener('click', () => {
+        document.querySelectorAll('.formula-input').forEach(input => {
+            const nombrePlaga = input.dataset.plaga;
+            const plaga = estado.plagas.find(p => p.nombre === nombrePlaga);
+            if (plaga) plaga.formula = input.value;
+        });
+        guardarEstado();
+        alert('Fórmulas guardadas.');
+        mostrarVista('vista-bienvenida');
     });
     
-    render.updateNav();
-    render.showView();
-    render.loteContent();
+    // --- Lógica de Resultados ---
+    resultados.listaLotes.addEventListener('click', (e) => {
+        const targetButton = e.target.closest('.lote-select-resultados-btn');
+        if (targetButton) {
+            renderTablaResultados(targetButton.dataset.lote);
+        }
+    });
+
+    resultados.btnExportar.addEventListener('click', () => {
+        const nombreLote = resultados.tituloLote.textContent.replace('Resultados para: ', '');
+        if (!nombreLote) return;
+        
+        let csvRows = [];
+        const escapeCell = (cell) => `"${String(cell).replace(/"/g, '""')}"`;
+
+        csvRows.push([`Resultados para Lote: ${nombreLote}`]);
+        csvRows.push([]); 
+
+        csvRows.push(["Promedio General del Lote"]);
+        const generalTable = resultados.tablaGeneral.querySelectorAll('tr');
+        generalTable.forEach(row => {
+            const rowData = Array.from(row.querySelectorAll('th, td')).map(cell => escapeCell(cell.innerText));
+            csvRows.push(rowData);
+        });
+        
+        const valvulasData = resultados.tablasValvulas.children;
+        Array.from(valvulasData).forEach(element => {
+            csvRows.push([]); 
+            if (element.tagName === 'H4') {
+                csvRows.push([escapeCell(element.innerText)]);
+            } else if (element.tagName === 'TABLE') {
+                element.querySelectorAll('tr').forEach(row => {
+                    const rowData = Array.from(row.querySelectorAll('th, td')).map(cell => escapeCell(cell.innerText));
+                    csvRows.push(rowData);
+                });
+            }
+        });
+
+        const csvContent = csvRows.map(e => e.join(",")).join("\n");
+        const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+        const link = document.createElement("a");
+        const url = URL.createObjectURL(blob);
+        link.setAttribute("href", url);
+        link.setAttribute("download", `resultados_${nombreLote}_${new Date().toISOString().split('T')[0]}.csv`);
+        document.body.appendChild(link);
+        link.click();
+        document.body.removeChild(link);
+    });
+
+    // ===================================================================================
+    //  7. INICIALIZACIÓN DE LA APLICACIÓN
+    // ===================================================================================
+    const inicializarApp = () => {
+        cargarEstado();
+        
+        const hoy = new Date().toDateString();
+        if (estado.fechaUltimaLimpieza !== hoy) {
+            for (const nombreLote in estado.lotes) {
+                estado.lotes[nombreLote].valvulas.forEach(valvula => {
+                    valvula.conteos = {};
+                    valvula.racimos = [];
+                });
+            }
+            estado.fechaUltimaLimpieza = hoy;
+            guardarEstado();
+            console.log('Limpieza diaria de conteos y racimos realizada.');
+        }
+
+        renderBienvenida();
+        mostrarVista('vista-bienvenida');
+    };
+
+    inicializarApp();
 });
