@@ -84,19 +84,11 @@
             <p>Selecciona un lote para ver sus promedios.</p>
             <div id="lista-seleccion-lotes-resultados"></div>
             <div id="contenido-resultados" class="hidden">
-    <h3 id="titulo-resultados-lote"></h3>
-    <div class="export-buttons-container">
-        <button id="btn-exportar-pc" class="btn btn-primary">Exportar para PC (Excel)</button>
-        <button id="btn-exportar-movil" class="btn btn-secondary">Exportar para Móvil</button>
-    </div>
-    <h4>Promedio General del Lote</h4>
-    <table id="tabla-promedio-general"></table>
-    <h4>Promedio por Válvula</h4>
-    <div id="tablas-por-valvula"></div>
-</div>
-            <div id="contenido-resultados" class="hidden">
                 <h3 id="titulo-resultados-lote"></h3>
-                <button id="btn-exportar-excel" class="btn btn-primary">Exportar a Excel</button>
+                <div class="export-buttons-container">
+                    <button id="btn-exportar-pc" class="btn btn-primary">Exportar para PC (Excel)</button>
+                    <button id="btn-exportar-movil" class="btn btn-secondary">Exportar para Móvil</button>
+                </div>
                 <h4>Promedio General del Lote</h4>
                 <table id="tabla-promedio-general"></table>
                 <h4>Promedio por Válvula</h4>
@@ -116,6 +108,7 @@
          </div>
     </div>
 
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/FileSaver.js/2.0.5/FileSaver.min.js"></script>
     <script src="app.js"></script>
 </body>
 </html>

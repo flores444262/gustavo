@@ -56,7 +56,6 @@ document.addEventListener('DOMContentLoaded', () => {
         listaLotes: document.getElementById('lista-seleccion-lotes-resultados'),
         contenido: document.getElementById('contenido-resultados'),
         tituloLote: document.getElementById('titulo-resultados-lote'),
-        // *** CAMBIO: Ahora tenemos dos botones de exportación ***
         btnExportarPC: document.getElementById('btn-exportar-pc'),
         btnExportarMovil: document.getElementById('btn-exportar-movil'),
         tablaGeneral: document.getElementById('tabla-promedio-general'),
@@ -99,7 +98,6 @@ document.addEventListener('DOMContentLoaded', () => {
     // ===================================================================================
     //  5. FUNCIONES DE RENDERIZADO (DIBUJAR LA INTERFAZ)
     // ===================================================================================
-    // (Estas funciones no cambian)
     const renderBienvenida = () => {
         bienvenida.listaLotes.innerHTML = '<h3>Selecciona un Lote:</h3>';
         const nombresLotes = Object.keys(estado.lotes);
@@ -252,7 +250,7 @@ document.addEventListener('DOMContentLoaded', () => {
     //  6. LÓGICA DE LA APLICACIÓN Y MANEJADORES DE EVENTOS
     // ===================================================================================
 
-    // --- Lógica de Login, Navegación, etc. (sin cambios) ---
+    // --- Lógica de Login, Navegación, etc. ---
     login.linkRegistro.addEventListener('click', (e) => { e.preventDefault(); login.formLogin.classList.add('hidden'); login.formRegistro.classList.remove('hidden'); });
     login.linkLogin.addEventListener('click', (e) => { e.preventDefault(); login.formRegistro.classList.add('hidden'); login.formLogin.classList.remove('hidden'); });
     login.btnRegistro.addEventListener('click', () => { const user = login.inputUsuarioRegistro.value.trim(); const pass = login.inputPasswordRegistro.value.trim(); if (!user || !pass) return alert('Usuario y contraseña no pueden estar vacíos.'); if (datosGlobales.users[user]) return alert('El nombre de usuario ya existe.'); datosGlobales.users[user] = pass; guardarDatosGlobales(); alert('¡Usuario registrado con éxito! Ahora puedes iniciar sesión.'); login.linkLogin.click(); });
@@ -280,7 +278,6 @@ document.addEventListener('DOMContentLoaded', () => {
     // --- Lógica de Resultados ---
     resultados.listaLotes.addEventListener('click', (e) => { const targetButton = e.target.closest('.lote-select-resultados-btn'); if (targetButton) { renderTablaResultados(targetButton.dataset.lote); } });
     
-    // *** NUEVA FUNCIÓN DE EXPORTACIÓN REFACTORIZADA ***
     const exportarDatos = (separador) => {
         const nombreLote = resultados.tituloLote.textContent.replace('Resultados para: ', '');
         const lote = estado.lotes[nombreLote];
@@ -302,25 +299,20 @@ document.addEventListener('DOMContentLoaded', () => {
             const fila = [plaga.nombre];
             lote.valvulas.forEach(valvula => {
                 const promedio = calcularPromedio(plaga, valvula);
-                fila.push(String(promedio.toFixed(4)).replace('.', ',')); // Reemplaza el punto decimal por coma
+                fila.push(String(promedio.toFixed(4)).replace('.', ','));
             });
             dataRows.push(fila);
         });
 
         const content = dataRows.map(row => row.join(separador)).join("\n");
         const blob = new Blob(['\uFEFF' + content], { type: 'text/csv;charset=utf-8;' });
-        const link = document.createElement("a");
-        const url = URL.createObjectURL(blob);
-        link.setAttribute("href", url);
-        link.setAttribute("download", `informe_${nombreLote}_${fecha.replace(/\//g, '-')}.csv`);
-        document.body.appendChild(link);
-        link.click();
-        document.body.removeChild(link);
+
+        // *** CAMBIO FINAL: Usamos FileSaver.js para una descarga robusta en todos los dispositivos ***
+        saveAs(blob, `informe_${nombreLote}_${fecha.replace(/\//g, '-')}.csv`);
     };
 
-    // *** NUEVOS LISTENERS PARA LOS DOS BOTONES ***
-    resultados.btnExportarPC.addEventListener('click', () => exportarDatos(';')); // Punto y coma para PC
-    resultados.btnExportarMovil.addEventListener('click', () => exportarDatos(',')); // Coma para Móvil
+    resultados.btnExportarPC.addEventListener('click', () => exportarDatos(';'));
+    resultados.btnExportarMovil.addEventListener('click', () => exportarDatos(','));
 
     // ===================================================================================
     //  7. INICIALIZACIÓN DE LA APLICACIÓN
