@@ -283,7 +283,7 @@ document.addEventListener('DOMContentLoaded', () => {
     evaluacion.puntosInput.addEventListener('change', (e) => { const valvula = estado.lotes[estado.loteActivo].valvulas.find(v => v.id == estado.valvulaActivaId); if(!valvula) return; valvula.puntosEvaluados = parseInt(e.target.value) || 1; estado.lotes[estado.loteActivo].ultimaModificacion = new Date().toISOString(); renderContenidoValvula(); guardarDatosGlobales(); });
     evaluacion.racimosContenedor.addEventListener('change', (e) => { if (e.target.matches('.racimo-input')) { const punto = parseInt(e.target.dataset.punto); const valor = parseInt(e.target.value) || 0; const valvula = estado.lotes[estado.loteActivo].valvulas.find(v => v.id == estado.valvulaActivaId); if(!valvula) return; valvula.racimos[punto] = valor; estado.lotes[estado.loteActivo].ultimaModificacion = new Date().toISOString(); guardarDatosGlobales(); } });
     evaluacion.conteosContenedor.addEventListener('click', (e) => { if (e.target.matches('.delete-conteo-btn')) { const plaga = e.target.dataset.plaga; const index = parseInt(e.target.dataset.index); const valvula = estado.lotes[estado.loteActivo].valvulas.find(v => v.id == estado.valvulaActivaId); if (valvula && valvula.conteos[plaga]) { valvula.conteos[plaga].splice(index, 1); estado.lotes[estado.loteActivo].ultimaModificacion = new Date().toISOString(); renderContenidoValvula(); guardarDatosGlobales(); } } });
-    evaluacion.conteosContenedor.addEventListener('change', (e) => { if (e.target.matches('.conteo-input') && e.target.value) { const plaga = e.target.dataset.plaga; const valor = parseInt(e.target.value); const valvula = estado.lotes[estado.loteActivo].valvulas.find(v => v.id == estado.valvulaActivaId); if (!valvula) return; if (!valvula.conteos[plaga]) valvula.conteos[plaga] = []; valvula.conteos[plaga].push(valor); estado.lotes[estado.loteActivo].ultimaModificacion = new Date().toISOString(); renderContenidoValvula(); guardarDatosGlobales(); } });
+    evaluacion.conteosContenedor.addEventListener('change', (e) => { if (e.target.matches('.conteo-input') && e.target.value) { const plaga = e.target.dataset.plaga; const valor = parseInt(e.target.value); const valvula = estado.lotes[estado.loteActivo].valvulas.find(v => v.id == estado.loteActivaId); if (!valvula) return; if (!valvula.conteos[plaga]) valvula.conteos[plaga] = []; valvula.conteos[plaga].push(valor); estado.lotes[estado.loteActivo].ultimaModificacion = new Date().toISOString(); renderContenidoValvula(); guardarDatosGlobales(); } });
     gestionPlagas.btnAgregar.addEventListener('click', () => { const nombrePlaga = gestionPlagas.inputNueva.value.trim(); if (nombrePlaga && !estado.plagas.some(p => p.nombre === nombrePlaga)) { estado.plagas.push({ nombre: nombrePlaga, formula: "I / (P * 4)" }); renderGestionPlagas(); } });
     gestionPlagas.lista.addEventListener('click', (e) => { if (e.target.matches('.delete-btn')) { const nombrePlaga = e.target.dataset.plaga; estado.plagas = estado.plagas.filter(p => p.nombre !== nombrePlaga); renderGestionPlagas(); } });
     configCalculo.btnGuardar.addEventListener('click', () => { document.querySelectorAll('.formula-input').forEach(input => { const nombrePlaga = input.dataset.plaga; const plaga = estado.plagas.find(p => p.nombre === nombrePlaga); if (plaga) plaga.formula = input.value; }); guardarDatosGlobales(); alert('Fórmulas guardadas.'); mostrarVista('vista-bienvenida'); });
@@ -301,32 +301,38 @@ document.addEventListener('DOMContentLoaded', () => {
         const calcularPromedio = (plaga, valvula) => { const I = (valvula.conteos[plaga.nombre] || []).reduce((a, b) => a + b, 0); const P = valvula.puntosEvaluados; const R = valvula.racimos.reduce((a, b) => a + b, 0); try { return new Function('I', 'P', 'R', `return ${plaga.formula}`)(I, P, R) || 0; } catch (e) { console.error(`Error en la fórmula para ${plaga.nombre}:`, e); return 0; } };
         const escapeCell = (cell) => { let strCell = String(cell); if (strCell.includes(',') || strCell.includes('"') || strCell.includes('\n')) { return `"${strCell.replace(/"/g, '""')}"`; } return strCell; };
 
-        // --- Construcción de las filas del CSV ---
-        let csvRows = [];
+        // --- Construcción de las filas ---
+        let dataRows = [];
         const hoy = new Date();
         const semana = getWeekNumber(hoy);
         const fecha = hoy.toLocaleDateString('es-ES');
 
-        csvRows.push(['Semana', semana, 'Lote', nombreLote, 'Fecha', fecha]);
+        // Fila 1: Metadatos
+        dataRows.push(['Semana', semana, 'Lote', nombreLote, 'Fecha', fecha]);
+
+        // Fila 2: Cabecera de Válvulas
         const nombresValvulas = lote.valvulas.map(v => v.nombre);
-        csvRows.push(['', ...nombresValvulas]);
+        dataRows.push(['', ...nombresValvulas]);
+
+        // Filas de Datos
         estado.plagas.forEach(plaga => {
             const fila = [plaga.nombre];
             lote.valvulas.forEach(valvula => {
                 const promedio = calcularPromedio(plaga, valvula);
                 fila.push(promedio.toFixed(4));
             });
-            csvRows.push(fila);
+            dataRows.push(fila);
         });
 
-        // *** CAMBIO CRÍTICO: Usamos punto y coma (;) como separador ***
-        const csvContent = csvRows.map(row => row.map(escapeCell).join(";")).join("\n");
+        // *** CAMBIO CRÍTICO: Usamos tabulación (\t) como separador universal ***
+        const content = dataRows.map(row => row.join("\t")).join("\n");
         
-        const blob = new Blob(['\uFEFF' + csvContent], { type: 'text/csv;charset=utf-8;' });
+        // *** CAMBIO: Añadimos \uFEFF (BOM) para la codificación y cambiamos a .tsv ***
+        const blob = new Blob(['\uFEFF' + content], { type: 'text/tab-separated-values;charset=utf-8;' });
         const link = document.createElement("a");
         const url = URL.createObjectURL(blob);
         link.setAttribute("href", url);
-        link.setAttribute("download", `informe_${nombreLote}_${fecha.replace(/\//g, '-')}.csv`);
+        link.setAttribute("download", `informe_${nombreLote}_${fecha.replace(/\//g, '-')}.tsv`); // Cambiamos la extensión a .tsv
         document.body.appendChild(link);
         link.click();
         document.body.removeChild(link);
