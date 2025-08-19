@@ -8,9 +8,32 @@
 </head>
 <body>
 
-    <div id="vista-bienvenida" class="view">
+    <div id="vista-login" class="view">
         <div class="card">
-            <h1>Sistema de Evaluación Agrícola</h1>
+            <h1>Bienvenido al Sistema</h1>
+            <div id="login-form">
+                <h2>Iniciar Sesión</h2>
+                <input type="text" id="login-usuario" placeholder="Nombre de usuario" autocomplete="username">
+                <input type="password" id="login-password" placeholder="Contraseña" autocomplete="current-password">
+                <button id="btn-login" class="btn btn-primary">Entrar</button>
+                <p>¿No tienes cuenta? <a href="#" id="link-a-registro">Regístrate aquí</a></p>
+            </div>
+            <div id="registro-form" class="hidden">
+                <h2>Registrar Nuevo Usuario</h2>
+                <input type="text" id="registro-usuario" placeholder="Elige un nombre de usuario" autocomplete="username">
+                <input type="password" id="registro-password" placeholder="Elige una contraseña" autocomplete="new-password">
+                <button id="btn-registro" class="btn btn-primary">Registrar</button>
+                <p>¿Ya tienes cuenta? <a href="#" id="link-a-login">Inicia sesión</a></p>
+            </div>
+        </div>
+    </div>
+
+    <div id="vista-bienvenida" class="view hidden">
+        <div class="card">
+            <div class="header-bienvenida">
+                <h1 id="titulo-bienvenida">Sistema de Evaluación Agrícola</h1>
+                <button id="btn-logout" class="btn">Cerrar Sesión</button>
+            </div>
             <p>¿Qué lote se evaluará hoy?</p>
             <div id="lista-seleccion-lotes"></div>
             <button id="btn-crear-nuevo-lote" class="btn btn-primary">Crear Nuevo Lote</button>
