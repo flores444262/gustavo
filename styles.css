@@ -119,3 +119,14 @@ tr:nth-child(even) { background-color: #f2f2f2; }
     .header-bienvenida { flex-direction: column; }
     .tabs-nav { overflow-x: auto; white-space: nowrap; justify-content: flex-start; }
 }
+.export-buttons-container {
+    display: flex;
+    justify-content: center;
+    gap: 10px;
+    margin: 20px 0;
+}
+
+/* Hacemos que los botones no ocupen todo el ancho dentro de este contenedor */
+.export-buttons-container .btn {
+    width: auto;
+}

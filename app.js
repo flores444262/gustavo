@@ -56,7 +56,9 @@ document.addEventListener('DOMContentLoaded', () => {
         listaLotes: document.getElementById('lista-seleccion-lotes-resultados'),
         contenido: document.getElementById('contenido-resultados'),
         tituloLote: document.getElementById('titulo-resultados-lote'),
-        btnExportar: document.getElementById('btn-exportar-excel'),
+        // *** CAMBIO: Ahora tenemos dos botones de exportación ***
+        btnExportarPC: document.getElementById('btn-exportar-pc'),
+        btnExportarMovil: document.getElementById('btn-exportar-movil'),
         tablaGeneral: document.getElementById('tabla-promedio-general'),
         tablasValvulas: document.getElementById('tablas-por-valvula'),
         btnVolver: document.getElementById('btn-volver-inicio-desde-resultados'),
@@ -72,12 +74,9 @@ document.addEventListener('DOMContentLoaded', () => {
     //  3. PERSISTENCIA DE DATOS (localStorage)
     // ===================================================================================
     const guardarDatosGlobales = () => {
-        if (usuarioActivo) {
-            datosGlobales[usuarioActivo] = estado;
-        }
+        if (usuarioActivo) { datosGlobales[usuarioActivo] = estado; }
         localStorage.setItem('datosAppAgricola', JSON.stringify(datosGlobales));
     };
-    
     const cargarDatosGlobales = () => {
         const datosGuardados = localStorage.getItem('datosAppAgricola');
         datosGlobales = datosGuardados ? JSON.parse(datosGuardados) : { users: {} };
@@ -90,16 +89,9 @@ document.addEventListener('DOMContentLoaded', () => {
         vistas.forEach(vista => vista.classList.add('hidden'));
         document.getElementById(idVista).classList.remove('hidden');
     };
-    
     const cargarEstadoUsuario = () => {
         if (!datosGlobales[usuarioActivo]) {
-            datosGlobales[usuarioActivo] = {
-                lotes: {},
-                plagas: [],
-                loteActivo: null,
-                valvulaActivaId: null,
-                fechaUltimaLimpieza: null
-            };
+            datosGlobales[usuarioActivo] = { lotes: {}, plagas: [], loteActivo: null, valvulaActivaId: null, fechaUltimaLimpieza: null };
         }
         estado = datosGlobales[usuarioActivo];
     };
@@ -107,6 +99,7 @@ document.addEventListener('DOMContentLoaded', () => {
     // ===================================================================================
     //  5. FUNCIONES DE RENDERIZADO (DIBUJAR LA INTERFAZ)
     // ===================================================================================
+    // (Estas funciones no cambian)
     const renderBienvenida = () => {
         bienvenida.listaLotes.innerHTML = '<h3>Selecciona un Lote:</h3>';
         const nombresLotes = Object.keys(estado.lotes);
@@ -234,9 +227,7 @@ document.addEventListener('DOMContentLoaded', () => {
             const P = totalPuntos;
             const R = totalRacimos;
             let promedio = 0;
-            try {
-                promedio = new Function('I', 'P', 'R', `return ${plaga.formula}`)(I, P, R);
-            } catch (e) { console.error('Error en formula:', e); }
+            try { promedio = new Function('I', 'P', 'R', `return ${plaga.formula}`)(I, P, R); } catch (e) { console.error('Error en formula:', e); }
             tablaGeneralHTML += `<tr><td>${plaga.nombre}</td><td>${I}</td><td>${promedio.toFixed(4)}</td></tr>`;
         });
         resultados.tablaGeneral.innerHTML = tablaGeneralHTML + '</tbody>';
@@ -248,9 +239,7 @@ document.addEventListener('DOMContentLoaded', () => {
                 const P = valvula.puntosEvaluados;
                 const R = valvula.racimos.reduce((a, b) => a + b, 0);
                 let promedio = 0;
-                try {
-                    promedio = new Function('I', 'P', 'R', `return ${plaga.formula}`)(I, P, R);
-                } catch (e) { console.error('Error en formula:', e); }
+                try { promedio = new Function('I', 'P', 'R', `return ${plaga.formula}`)(I, P, R); } catch (e) { console.error('Error en formula:', e); }
                 tablasValvulasHTML += `<tr><td>${plaga.nombre}</td><td>${I}</td><td>${promedio.toFixed(4)}</td></tr>`;
             });
             tablasValvulasHTML += `</tbody></table>`;
@@ -263,7 +252,7 @@ document.addEventListener('DOMContentLoaded', () => {
     //  6. LÓGICA DE LA APLICACIÓN Y MANEJADORES DE EVENTOS
     // ===================================================================================
 
-    // --- Lógica de Login, Navegación, etc. ---
+    // --- Lógica de Login, Navegación, etc. (sin cambios) ---
     login.linkRegistro.addEventListener('click', (e) => { e.preventDefault(); login.formLogin.classList.add('hidden'); login.formRegistro.classList.remove('hidden'); });
     login.linkLogin.addEventListener('click', (e) => { e.preventDefault(); login.formRegistro.classList.add('hidden'); login.formLogin.classList.remove('hidden'); });
     login.btnRegistro.addEventListener('click', () => { const user = login.inputUsuarioRegistro.value.trim(); const pass = login.inputPasswordRegistro.value.trim(); if (!user || !pass) return alert('Usuario y contraseña no pueden estar vacíos.'); if (datosGlobales.users[user]) return alert('El nombre de usuario ya existe.'); datosGlobales.users[user] = pass; guardarDatosGlobales(); alert('¡Usuario registrado con éxito! Ahora puedes iniciar sesión.'); login.linkLogin.click(); });
@@ -283,60 +272,55 @@ document.addEventListener('DOMContentLoaded', () => {
     evaluacion.puntosInput.addEventListener('change', (e) => { const valvula = estado.lotes[estado.loteActivo].valvulas.find(v => v.id == estado.valvulaActivaId); if(!valvula) return; valvula.puntosEvaluados = parseInt(e.target.value) || 1; estado.lotes[estado.loteActivo].ultimaModificacion = new Date().toISOString(); renderContenidoValvula(); guardarDatosGlobales(); });
     evaluacion.racimosContenedor.addEventListener('change', (e) => { if (e.target.matches('.racimo-input')) { const punto = parseInt(e.target.dataset.punto); const valor = parseInt(e.target.value) || 0; const valvula = estado.lotes[estado.loteActivo].valvulas.find(v => v.id == estado.valvulaActivaId); if(!valvula) return; valvula.racimos[punto] = valor; estado.lotes[estado.loteActivo].ultimaModificacion = new Date().toISOString(); guardarDatosGlobales(); } });
     evaluacion.conteosContenedor.addEventListener('click', (e) => { if (e.target.matches('.delete-conteo-btn')) { const plaga = e.target.dataset.plaga; const index = parseInt(e.target.dataset.index); const valvula = estado.lotes[estado.loteActivo].valvulas.find(v => v.id == estado.valvulaActivaId); if (valvula && valvula.conteos[plaga]) { valvula.conteos[plaga].splice(index, 1); estado.lotes[estado.loteActivo].ultimaModificacion = new Date().toISOString(); renderContenidoValvula(); guardarDatosGlobales(); } } });
-    evaluacion.conteosContenedor.addEventListener('change', (e) => { if (e.target.matches('.conteo-input') && e.target.value) { const plaga = e.target.dataset.plaga; const valor = parseInt(e.target.value); const valvula = estado.lotes[estado.loteActivo].valvulas.find(v => v.id == estado.loteActivaId); if (!valvula) return; if (!valvula.conteos[plaga]) valvula.conteos[plaga] = []; valvula.conteos[plaga].push(valor); estado.lotes[estado.loteActivo].ultimaModificacion = new Date().toISOString(); renderContenidoValvula(); guardarDatosGlobales(); } });
+    evaluacion.conteosContenedor.addEventListener('change', (e) => { if (e.target.matches('.conteo-input') && e.target.value) { const plaga = e.target.dataset.plaga; const valor = parseInt(e.target.value); const valvula = estado.lotes[estado.loteActivo].valvulas.find(v => v.id == estado.valvulaActivaId); if (!valvula) return; if (!valvula.conteos[plaga]) valvula.conteos[plaga] = []; valvula.conteos[plaga].push(valor); estado.lotes[estado.loteActivo].ultimaModificacion = new Date().toISOString(); renderContenidoValvula(); guardarDatosGlobales(); } });
     gestionPlagas.btnAgregar.addEventListener('click', () => { const nombrePlaga = gestionPlagas.inputNueva.value.trim(); if (nombrePlaga && !estado.plagas.some(p => p.nombre === nombrePlaga)) { estado.plagas.push({ nombre: nombrePlaga, formula: "I / (P * 4)" }); renderGestionPlagas(); } });
     gestionPlagas.lista.addEventListener('click', (e) => { if (e.target.matches('.delete-btn')) { const nombrePlaga = e.target.dataset.plaga; estado.plagas = estado.plagas.filter(p => p.nombre !== nombrePlaga); renderGestionPlagas(); } });
     configCalculo.btnGuardar.addEventListener('click', () => { document.querySelectorAll('.formula-input').forEach(input => { const nombrePlaga = input.dataset.plaga; const plaga = estado.plagas.find(p => p.nombre === nombrePlaga); if (plaga) plaga.formula = input.value; }); guardarDatosGlobales(); alert('Fórmulas guardadas.'); mostrarVista('vista-bienvenida'); });
-    resultados.listaLotes.addEventListener('click', (e) => { const targetButton = e.target.closest('.lote-select-resultados-btn'); if (targetButton) { renderTablaResultados(targetButton.dataset.lote); } });
     
     // --- Lógica de Resultados ---
+    resultados.listaLotes.addEventListener('click', (e) => { const targetButton = e.target.closest('.lote-select-resultados-btn'); if (targetButton) { renderTablaResultados(targetButton.dataset.lote); } });
     
-    resultados.btnExportar.addEventListener('click', () => {
+    // *** NUEVA FUNCIÓN DE EXPORTACIÓN REFACTORIZADA ***
+    const exportarDatos = (separador) => {
         const nombreLote = resultados.tituloLote.textContent.replace('Resultados para: ', '');
         const lote = estado.lotes[nombreLote];
         if (!lote) return alert('No hay un lote seleccionado para exportar.');
 
-        // --- Funciones auxiliares ---
+        // Funciones auxiliares
         const getWeekNumber = (d) => { d = new Date(Date.UTC(d.getFullYear(), d.getMonth(), d.getDate())); d.setUTCDate(d.getUTCDate() + 4 - (d.getUTCDay() || 7)); const yearStart = new Date(Date.UTC(d.getUTCFullYear(), 0, 1)); return Math.ceil((((d - yearStart) / 86400000) + 1) / 7); };
         const calcularPromedio = (plaga, valvula) => { const I = (valvula.conteos[plaga.nombre] || []).reduce((a, b) => a + b, 0); const P = valvula.puntosEvaluados; const R = valvula.racimos.reduce((a, b) => a + b, 0); try { return new Function('I', 'P', 'R', `return ${plaga.formula}`)(I, P, R) || 0; } catch (e) { console.error(`Error en la fórmula para ${plaga.nombre}:`, e); return 0; } };
-        const escapeCell = (cell) => { let strCell = String(cell); if (strCell.includes(',') || strCell.includes('"') || strCell.includes('\n')) { return `"${strCell.replace(/"/g, '""')}"`; } return strCell; };
-
-        // --- Construcción de las filas ---
+        
         let dataRows = [];
         const hoy = new Date();
         const semana = getWeekNumber(hoy);
         const fecha = hoy.toLocaleDateString('es-ES');
 
-        // Fila 1: Metadatos
         dataRows.push(['Semana', semana, 'Lote', nombreLote, 'Fecha', fecha]);
-
-        // Fila 2: Cabecera de Válvulas
         const nombresValvulas = lote.valvulas.map(v => v.nombre);
         dataRows.push(['', ...nombresValvulas]);
-
-        // Filas de Datos
         estado.plagas.forEach(plaga => {
             const fila = [plaga.nombre];
             lote.valvulas.forEach(valvula => {
                 const promedio = calcularPromedio(plaga, valvula);
-                fila.push(promedio.toFixed(4));
+                fila.push(String(promedio.toFixed(4)).replace('.', ',')); // Reemplaza el punto decimal por coma
             });
             dataRows.push(fila);
         });
 
-        // *** CAMBIO CRÍTICO: Usamos tabulación (\t) como separador universal ***
-        const content = dataRows.map(row => row.join("\t")).join("\n");
-        
-        // *** CAMBIO: Añadimos \uFEFF (BOM) para la codificación y cambiamos a .tsv ***
-        const blob = new Blob(['\uFEFF' + content], { type: 'text/tab-separated-values;charset=utf-8;' });
+        const content = dataRows.map(row => row.join(separador)).join("\n");
+        const blob = new Blob(['\uFEFF' + content], { type: 'text/csv;charset=utf-8;' });
         const link = document.createElement("a");
         const url = URL.createObjectURL(blob);
         link.setAttribute("href", url);
-        link.setAttribute("download", `informe_${nombreLote}_${fecha.replace(/\//g, '-')}.tsv`); // Cambiamos la extensión a .tsv
+        link.setAttribute("download", `informe_${nombreLote}_${fecha.replace(/\//g, '-')}.csv`);
         document.body.appendChild(link);
         link.click();
         document.body.removeChild(link);
-    });
+    };
+
+    // *** NUEVOS LISTENERS PARA LOS DOS BOTONES ***
+    resultados.btnExportarPC.addEventListener('click', () => exportarDatos(';')); // Punto y coma para PC
+    resultados.btnExportarMovil.addEventListener('click', () => exportarDatos(',')); // Coma para Móvil
 
     // ===================================================================================
     //  7. INICIALIZACIÓN DE LA APLICACIÓN
