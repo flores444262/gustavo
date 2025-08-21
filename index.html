@@ -3,11 +3,16 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <!-- NUEVA LÍNEA: Conecta con el archivo de manifiesto -->
+    <link rel="manifest" href="manifest.json">
+    
     <title>Sistema Agrícola de Evaluación</title>
     <link rel="stylesheet" href="styles.css">
 </head>
 <body>
 
+    <!-- Todo el contenido de tus vistas (login, bienvenida, etc.) va aquí sin cambios -->
+    <!-- VISTA DE INICIO DE SESIÓN / REGISTRO -->
     <div id="vista-login" class="view">
         <div class="card">
             <h1>Bienvenido al Sistema</h1>
@@ -28,6 +33,7 @@
         </div>
     </div>
 
+    <!-- VISTA DE BIENVENIDA Y SELECCIÓN DE LOTE -->
     <div id="vista-bienvenida" class="view hidden">
         <div class="card">
             <div class="header-bienvenida">
@@ -44,6 +50,7 @@
         </div>
     </div>
 
+    <!-- VISTA PRINCIPAL DE EVALUACIÓN -->
     <div id="vista-evaluacion" class="view hidden">
         <header>
             <h1 id="evaluacion-titulo-lote"></h1>
@@ -67,6 +74,7 @@
         </main>
     </div>
 
+    <!-- VISTA DE GESTIÓN DE PLAGAS -->
     <div id="vista-gestion-plagas" class="view hidden">
         <div class="card">
             <h2>Gestión de Plagas</h2>
@@ -78,6 +86,7 @@
         </div>
     </div>
 
+    <!-- VISTA DE RESULTADOS -->
     <div id="vista-resultados" class="view hidden">
         <div class="card">
             <h2>Resultados del Día</h2>
@@ -98,6 +107,7 @@
         </div>
     </div>
     
+    <!-- VISTA DE CONFIGURACIÓN DE CÁLCULOS -->
     <div id="vista-config-calculo" class="view hidden">
          <div class="card">
             <h2>Configuración de Fórmulas</h2>
@@ -110,5 +120,18 @@
 
     <script src="https://cdnjs.cloudflare.com/ajax/libs/FileSaver.js/2.0.5/FileSaver.min.js"></script>
     <script src="app.js"></script>
+    
+    <!-- NUEVO SCRIPT: Registra el Service Worker -->
+    <script>
+      if ('serviceWorker' in navigator) {
+        window.addEventListener('load', () => {
+          navigator.serviceWorker.register('/sw.js').then(registration => {
+            console.log('ServiceWorker registrado con éxito:', registration.scope);
+          }, err => {
+            console.log('Fallo en el registro del ServiceWorker:', err);
+          });
+        });
+      }
+    </script>
 </body>
 </html>

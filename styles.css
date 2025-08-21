@@ -1,5 +1,5 @@
 /* ========================================================== */
-/* ESTILOS GENERALES (SIN CAMBIOS) */
+/* ESTILOS GENERALES */
 /* ========================================================== */
 body {
     font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
@@ -12,12 +12,10 @@ body {
     padding: 20px;
     min-height: 100vh;
 }
-
 .view {
     width: 100%;
     max-width: 900px;
 }
-
 .card {
     background-color: white;
     border-radius: 8px;
@@ -25,7 +23,6 @@ body {
     margin-bottom: 20px;
     box-shadow: 0 4px 12px rgba(0,0,0,0.1);
 }
-
 input[type="text"], input[type="number"], input[type="password"] {
     width: 100%;
     padding: 10px;
@@ -36,7 +33,7 @@ input[type="text"], input[type="number"], input[type="password"] {
 }
 
 /* ========================================================== */
-/* BOTONES Y OTROS ELEMENTOS (CON PEQUEÑOS AÑADIDOS) */
+/* BOTONES Y OTROS ELEMENTOS */
 /* ========================================================== */
 .btn {
     padding: 12px 20px;
@@ -48,7 +45,6 @@ input[type="text"], input[type="number"], input[type="password"] {
     margin: 5px;
     transition: background-color 0.2s, transform 0.1s;
 }
-
 .btn:active { transform: translateY(1px); }
 .btn-primary { background-color: #27ae60; color: white; }
 .btn-primary:hover { background-color: #2ecc71; }
@@ -56,17 +52,27 @@ input[type="text"], input[type="number"], input[type="password"] {
 .btn-secondary:hover { background-color: #e67e22; }
 .hidden { display: none !important; }
 
-/* NUEVOS ESTILOS PARA EDICIÓN DE LOTES */
-.lote-button-container { display: flex; align-items: center; margin-bottom: 5px; }
+/* ESTILOS PARA EDICIÓN Y ELIMINACIÓN DE LOTES */
+.lote-button-container { display: flex; align-items: center; margin-bottom: 5px; gap: 5px; }
 .lote-select-btn { flex-grow: 1; }
-.edit-lote-btn { padding: 10px; cursor: pointer; font-size: 1.2em; margin-left: 10px; }
+.edit-lote-btn, .delete-lote-btn {
+    padding: 10px;
+    cursor: pointer;
+    font-size: 1.2em;
+}
+.delete-lote-btn:hover {
+    color: #c0392b;
+}
 
-/* ESTILOS DE PESTAÑAS (TABS) (SIN CAMBIOS) */
+/* ESTILOS DE PESTAÑAS (TABS) */
 .tabs-nav { display: flex; flex-wrap: wrap; margin-bottom: 15px; }
-.tab-item { padding: 10px 20px; cursor: pointer; border: 1px solid #ccc; background-color: #f9f9f9; margin: 5px; border-radius: 5px; }
+.tab-item { display: flex; align-items: center; padding: 10px 20px; cursor: pointer; border: 1px solid #ccc; background-color: #f9f9f9; margin: 5px; border-radius: 5px; }
 .tab-item.active { background-color: #2c3e50; color: white; border-color: #2c3e50; }
+.edit-valvula-btn { font-size: 0.8em; margin-left: 10px; }
+.delete-valvula-btn { margin-left: 8px; font-weight: bold; color: #c0392b; }
+.delete-valvula-btn:hover { color: #e74c3c; }
 
-/* LISTAS Y TABLAS (SIN CAMBIOS) */
+/* LISTAS Y TABLAS */
 ul { list-style-type: none; padding: 0; }
 li { padding: 10px; background-color: #ecf0f1; border-bottom: 1px solid #bdc3c7; display: flex; justify-content: space-between; align-items: center; }
 .delete-btn { cursor: pointer; color: #c0392b; font-weight: bold; }
@@ -75,58 +81,32 @@ th, td { padding: 12px; border: 1px solid #ddd; text-align: left; }
 th { background-color: #2c3e50; color: white; }
 tr:nth-child(even) { background-color: #f2f2f2; }
 
-/* ESTILOS PARA CONTEOS EDITABLES (SIN CAMBIOS) */
+/* ESTILOS PARA CONTEOS EDITABLES */
 .conteos-registrados { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 5px; }
 .conteo-tag { background-color: #e0e0e0; padding: 5px 10px; border-radius: 15px; font-size: 0.9em; }
 .delete-conteo-btn { background: none; border: none; cursor: pointer; padding-left: 5px; }
 
 /* ========================================================== */
-/* NUEVOS ESTILOS PARA LA PANTALLA DE LOGIN Y BIENVENIDA */
+/* LOGIN Y BIENVENIDA */
 /* ========================================================== */
-#vista-login .card {
-    max-width: 400px;
-    margin: 50px auto;
-}
-#vista-login a {
-    color: #2980b9;
-    cursor: pointer;
-}
-.header-bienvenida {
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-    margin-bottom: 20px;
-}
-.header-bienvenida h1 {
-    margin: 0;
-}
-#btn-logout {
-    background-color: #c0392b;
-    color: white;
-}
-#btn-logout:hover {
-    background-color: #e74c3c;
-}
+#vista-login .card { max-width: 400px; margin: 50px auto; }
+#vista-login a { color: #2980b9; cursor: pointer; }
+.header-bienvenida { display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px; }
+.header-bienvenida h1 { margin: 0; }
+#btn-logout { background-color: #c0392b; color: white; }
+#btn-logout:hover { background-color: #e74c3c; }
+.export-buttons-container { display: flex; justify-content: center; gap: 10px; margin: 20px 0; }
+.export-buttons-container .btn { width: auto; }
 
 /* ========================================================== */
-/* ESTILOS RESPONSIVOS (SIN CAMBIOS) */
+/* ESTILOS RESPONSIVOS */
 /* ========================================================== */
 @media (max-width: 768px) {
     body { padding: 10px; }
     .card { padding: 15px; }
     h1 { font-size: 1.8em; }
     .btn { width: 100%; padding: 15px; font-size: 1.1em; box-sizing: border-box; }
+    .export-buttons-container .btn { width: auto; font-size: 0.9em; }
     .header-bienvenida { flex-direction: column; }
     .tabs-nav { overflow-x: auto; white-space: nowrap; justify-content: flex-start; }
-}
-.export-buttons-container {
-    display: flex;
-    justify-content: center;
-    gap: 10px;
-    margin: 20px 0;
-}
-
-/* Hacemos que los botones no ocupen todo el ancho dentro de este contenedor */
-.export-buttons-container .btn {
-    width: auto;
 }

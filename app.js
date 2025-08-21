@@ -118,8 +118,14 @@ document.addEventListener('DOMContentLoaded', () => {
                 editBtn.dataset.lote = nombreLote;
                 editBtn.textContent = '✏️';
                 editBtn.title = 'Editar nombre del lote';
+                const deleteBtn = document.createElement('span');
+                deleteBtn.className = 'delete-lote-btn';
+                deleteBtn.dataset.lote = nombreLote;
+                deleteBtn.textContent = '🗑️';
+                deleteBtn.title = 'Eliminar lote';
                 buttonContainer.appendChild(button);
                 buttonContainer.appendChild(editBtn);
+                buttonContainer.appendChild(deleteBtn);
                 bienvenida.listaLotes.appendChild(buttonContainer);
             });
         }
@@ -135,13 +141,17 @@ document.addEventListener('DOMContentLoaded', () => {
             tab.dataset.id = valvula.id;
             const nombreSpan = document.createElement('span');
             nombreSpan.textContent = valvula.nombre;
-            nombreSpan.className = 'valvula-nombre';
             const editBtn = document.createElement('span');
             editBtn.textContent = ' ✏️';
             editBtn.className = 'edit-valvula-btn';
             editBtn.title = 'Editar nombre';
+            const deleteBtn = document.createElement('span');
+            deleteBtn.textContent = '🗑️';
+            deleteBtn.className = 'delete-valvula-btn';
+            deleteBtn.title = 'Eliminar válvula';
             tab.appendChild(nombreSpan);
             tab.appendChild(editBtn);
+            tab.appendChild(deleteBtn);
             if (valvula.id == estado.valvulaActivaId) tab.classList.add('active');
             evaluacion.navValvulas.appendChild(tab);
         });
@@ -264,9 +274,9 @@ document.addEventListener('DOMContentLoaded', () => {
     configCalculo.btnVolver.addEventListener('click', () => mostrarVista('vista-bienvenida'));
     resultados.btnVolver.addEventListener('click', () => mostrarVista('vista-bienvenida'));
     bienvenida.btnCrear.addEventListener('click', () => { const nombreLote = prompt('Ingrese el nombre del nuevo lote:'); if (nombreLote && !estado.lotes[nombreLote]) { estado.lotes[nombreLote] = { valvulas: [], ultimaModificacion: null }; renderBienvenida(); guardarDatosGlobales(); } else if (estado.lotes[nombreLote]) { alert('El lote ya existe.'); } });
-    bienvenida.listaLotes.addEventListener('click', (e) => { const selectBtn = e.target.closest('.lote-select-btn'); const editBtn = e.target.closest('.edit-lote-btn'); if (selectBtn) { estado.loteActivo = selectBtn.dataset.lote; const lote = estado.lotes[estado.loteActivo]; if (lote.valvulas.length === 0) { const idUnico = Date.now(); lote.valvulas.push({ id: idUnico, nombre: "Válvula 1", puntosEvaluados: 7, racimos: [], conteos: {} }); estado.valvulaActivaId = idUnico; } else { estado.valvulaActivaId = lote.valvulas[0].id; } renderEvaluacion(); mostrarVista('vista-evaluacion'); } else if (editBtn) { const nombreAntiguo = editBtn.dataset.lote; const nuevoNombre = prompt(`Ingrese el nuevo nombre para el lote "${nombreAntiguo}":`, nombreAntiguo); if (nuevoNombre && nuevoNombre !== nombreAntiguo) { if (estado.lotes[nuevoNombre]) { alert('Error: Ya existe un lote con ese nombre.'); return; } estado.lotes[nuevoNombre] = estado.lotes[nombreAntiguo]; delete estado.lotes[nombreAntiguo]; if (estado.loteActivo === nombreAntiguo) { estado.loteActivo = nuevoNombre; } renderBienvenida(); guardarDatosGlobales(); } } });
+    bienvenida.listaLotes.addEventListener('click', (e) => { const selectBtn = e.target.closest('.lote-select-btn'); const editBtn = e.target.closest('.edit-lote-btn'); const deleteBtn = e.target.closest('.delete-lote-btn'); if (selectBtn) { estado.loteActivo = selectBtn.dataset.lote; const lote = estado.lotes[estado.loteActivo]; if (lote.valvulas.length === 0) { const idUnico = Date.now(); lote.valvulas.push({ id: idUnico, nombre: "Válvula 1", puntosEvaluados: 7, racimos: [], conteos: {} }); estado.valvulaActivaId = idUnico; } else { estado.valvulaActivaId = lote.valvulas[0].id; } renderEvaluacion(); mostrarVista('vista-evaluacion'); } else if (editBtn) { const nombreAntiguo = editBtn.dataset.lote; const nuevoNombre = prompt(`Ingrese el nuevo nombre para el lote "${nombreAntiguo}":`, nombreAntiguo); if (nuevoNombre && nuevoNombre !== nombreAntiguo) { if (estado.lotes[nuevoNombre]) { return alert('Error: Ya existe un lote con ese nombre.'); } estado.lotes[nuevoNombre] = estado.lotes[nombreAntiguo]; delete estado.lotes[nombreAntiguo]; if (estado.loteActivo === nombreAntiguo) { estado.loteActivo = nuevoNombre; } renderBienvenida(); guardarDatosGlobales(); } } else if (deleteBtn) { const nombreLote = deleteBtn.dataset.lote; if (confirm(`¿Estás seguro de que quieres eliminar el lote "${nombreLote}"? Se perderán todos sus datos permanentemente.`)) { delete estado.lotes[nombreLote]; if (estado.loteActivo === nombreLote) { estado.loteActivo = null; } renderBienvenida(); guardarDatosGlobales(); } } });
     evaluacion.btnAgregarValvula.addEventListener('click', () => { const nombreValvula = prompt("Ingrese el nombre para la nueva válvula:", `Válvula ${estado.lotes[estado.loteActivo].valvulas.length + 1}`); if (!nombreValvula) return; const idUnico = Date.now(); estado.lotes[estado.loteActivo].valvulas.push({ id: idUnico, nombre: nombreValvula, puntosEvaluados: 7, racimos: [], conteos: {} }); estado.valvulaActivaId = idUnico; renderEvaluacion(); guardarDatosGlobales(); });
-    evaluacion.navValvulas.addEventListener('click', (e) => { const tab = e.target.closest('.tab-item'); if (!tab) return; if (e.target.matches('.edit-valvula-btn')) { const valvulaId = tab.dataset.id; const valvula = estado.lotes[estado.loteActivo].valvulas.find(v => v.id == valvulaId); const nuevoNombre = prompt(`Editar nombre de "${valvula.nombre}":`, valvula.nombre); if (nuevoNombre) { valvula.nombre = nuevoNombre; renderEvaluacion(); guardarDatosGlobales(); } } else { estado.valvulaActivaId = tab.dataset.id; renderEvaluacion(); } });
+    evaluacion.navValvulas.addEventListener('click', (e) => { const tab = e.target.closest('.tab-item'); if (!tab) return; const valvulaId = tab.dataset.id; if (e.target.matches('.edit-valvula-btn')) { const valvula = estado.lotes[estado.loteActivo].valvulas.find(v => v.id == valvulaId); const nuevoNombre = prompt(`Editar nombre de "${valvula.nombre}":`, valvula.nombre); if (nuevoNombre) { valvula.nombre = nuevoNombre; renderEvaluacion(); guardarDatosGlobales(); } } else if (e.target.matches('.delete-valvula-btn')) { if (confirm('¿Estás seguro de que quieres eliminar esta válvula?')) { estado.lotes[estado.loteActivo].valvulas = estado.lotes[estado.loteActivo].valvulas.filter(v => v.id != valvulaId); if (estado.valvulaActivaId == valvulaId) { estado.valvulaActivaId = estado.lotes[estado.loteActivo].valvulas[0]?.id || null; } renderEvaluacion(); guardarDatosGlobales(); } } else { estado.valvulaActivaId = valvulaId; renderEvaluacion(); } });
     evaluacion.puntosInput.addEventListener('change', (e) => { const valvula = estado.lotes[estado.loteActivo].valvulas.find(v => v.id == estado.valvulaActivaId); if(!valvula) return; valvula.puntosEvaluados = parseInt(e.target.value) || 1; estado.lotes[estado.loteActivo].ultimaModificacion = new Date().toISOString(); renderContenidoValvula(); guardarDatosGlobales(); });
     evaluacion.racimosContenedor.addEventListener('change', (e) => { if (e.target.matches('.racimo-input')) { const punto = parseInt(e.target.dataset.punto); const valor = parseInt(e.target.value) || 0; const valvula = estado.lotes[estado.loteActivo].valvulas.find(v => v.id == estado.valvulaActivaId); if(!valvula) return; valvula.racimos[punto] = valor; estado.lotes[estado.loteActivo].ultimaModificacion = new Date().toISOString(); guardarDatosGlobales(); } });
     evaluacion.conteosContenedor.addEventListener('click', (e) => { if (e.target.matches('.delete-conteo-btn')) { const plaga = e.target.dataset.plaga; const index = parseInt(e.target.dataset.index); const valvula = estado.lotes[estado.loteActivo].valvulas.find(v => v.id == estado.valvulaActivaId); if (valvula && valvula.conteos[plaga]) { valvula.conteos[plaga].splice(index, 1); estado.lotes[estado.loteActivo].ultimaModificacion = new Date().toISOString(); renderContenidoValvula(); guardarDatosGlobales(); } } });
@@ -283,7 +293,6 @@ document.addEventListener('DOMContentLoaded', () => {
         const lote = estado.lotes[nombreLote];
         if (!lote) return alert('No hay un lote seleccionado para exportar.');
 
-        // Funciones auxiliares
         const getWeekNumber = (d) => { d = new Date(Date.UTC(d.getFullYear(), d.getMonth(), d.getDate())); d.setUTCDate(d.getUTCDate() + 4 - (d.getUTCDay() || 7)); const yearStart = new Date(Date.UTC(d.getUTCFullYear(), 0, 1)); return Math.ceil((((d - yearStart) / 86400000) + 1) / 7); };
         const calcularPromedio = (plaga, valvula) => { const I = (valvula.conteos[plaga.nombre] || []).reduce((a, b) => a + b, 0); const P = valvula.puntosEvaluados; const R = valvula.racimos.reduce((a, b) => a + b, 0); try { return new Function('I', 'P', 'R', `return ${plaga.formula}`)(I, P, R) || 0; } catch (e) { console.error(`Error en la fórmula para ${plaga.nombre}:`, e); return 0; } };
         
@@ -299,15 +308,21 @@ document.addEventListener('DOMContentLoaded', () => {
             const fila = [plaga.nombre];
             lote.valvulas.forEach(valvula => {
                 const promedio = calcularPromedio(plaga, valvula);
-                fila.push(String(promedio.toFixed(4)).replace('.', ','));
+                // *** CORRECCIÓN: Usamos un método robusto para los decimales ***
+                if (separador === ';') {
+                    // Para PC/Excel en español, es crucial usar la coma como decimal.
+                    // toLocaleString es más seguro que un simple replace.
+                    fila.push(promedio.toLocaleString('es-PE', { minimumFractionDigits: 4, maximumFractionDigits: 4 }));
+                } else {
+                    // Para Móvil, el punto decimal es más estándar.
+                    fila.push(promedio.toFixed(4));
+                }
             });
             dataRows.push(fila);
         });
 
         const content = dataRows.map(row => row.join(separador)).join("\n");
         const blob = new Blob(['\uFEFF' + content], { type: 'text/csv;charset=utf-8;' });
-
-        // *** CAMBIO FINAL: Usamos FileSaver.js para una descarga robusta en todos los dispositivos ***
         saveAs(blob, `informe_${nombreLote}_${fecha.replace(/\//g, '-')}.csv`);
     };
 
