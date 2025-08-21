@@ -1,25 +1,45 @@
 document.addEventListener('DOMContentLoaded', () => {
 
     // ===================================================================================
-    //  1. ESTADO GLOBAL DE LA APLICACIÓN
+    //  1. CONFIGURACIÓN E INICIALIZACIÓN DE FIREBASE
+    // ===================================================================================
+    // ¡IMPORTANTE! Debes reemplazar esto con la configuración de TU proyecto de Firebase.
+      const firebaseConfig = {
+    apiKey: "AIzaSyCHlOlmsXUpun9G0Foa2KlA33chjYg0VLs",
+    authDomain: "beta-pro-d511e.firebaseapp.com",
+    projectId: "beta-pro-d511e",
+    storageBucket: "beta-pro-d511e.firebasestorage.app",
+    messagingSenderId: "549720320374",
+    appId: "1:549720320374:web:6594b3d1c797817a387257",
+    measurementId: "G-E384DM924T"
+  };
+
+
+    // Inicializar Firebase
+    firebase.initializeApp(firebaseConfig);
+    const auth = firebase.auth();
+    const db = firebase.firestore();
+    let unsubscribe; // Para el listener de datos en tiempo real
+
+    // ===================================================================================
+    //  2. ESTADO GLOBAL DE LA APLICACIÓN
     // ===================================================================================
     let estado = {}; 
-    let datosGlobales = {};
     let usuarioActivo = null;
 
     // ===================================================================================
-    //  2. SELECTORES DE ELEMENTOS DEL DOM
+    //  3. SELECTORES DE ELEMENTOS DEL DOM
     // ===================================================================================
     const vistas = document.querySelectorAll('.view');
     const login = {
         vista: document.getElementById('vista-login'),
         formLogin: document.getElementById('login-form'),
-        inputUsuarioLogin: document.getElementById('login-usuario'),
+        inputEmailLogin: document.getElementById('login-email'),
         inputPasswordLogin: document.getElementById('login-password'),
         btnLogin: document.getElementById('btn-login'),
         linkRegistro: document.getElementById('link-a-registro'),
         formRegistro: document.getElementById('registro-form'),
-        inputUsuarioRegistro: document.getElementById('registro-usuario'),
+        inputEmailRegistro: document.getElementById('registro-email'),
         inputPasswordRegistro: document.getElementById('registro-password'),
         btnRegistro: document.getElementById('btn-registro'),
         linkLogin: document.getElementById('link-a-login'),
@@ -70,37 +90,29 @@ document.addEventListener('DOMContentLoaded', () => {
     };
 
     // ===================================================================================
-    //  3. PERSISTENCIA DE DATOS (localStorage)
+    //  4. PERSISTENCIA DE DATOS (FIREBASE)
     // ===================================================================================
-    const guardarDatosGlobales = () => {
-        if (usuarioActivo) { datosGlobales[usuarioActivo] = estado; }
-        localStorage.setItem('datosAppAgricola', JSON.stringify(datosGlobales));
-    };
-    const cargarDatosGlobales = () => {
-        const datosGuardados = localStorage.getItem('datosAppAgricola');
-        datosGlobales = datosGuardados ? JSON.parse(datosGuardados) : { users: {} };
+    const guardarEstadoEnFirebase = () => {
+        if (usuarioActivo) {
+            db.collection('usuarios').doc(usuarioActivo.uid).set(estado, { merge: true })
+                .catch(error => console.error("Error al guardar datos:", error));
+        }
     };
 
     // ===================================================================================
-    //  4. LÓGICA DE NAVEGACIÓN Y ESTADO DE SESIÓN
+    //  5. LÓGICA DE NAVEGACIÓN
     // ===================================================================================
     const mostrarVista = (idVista) => {
         vistas.forEach(vista => vista.classList.add('hidden'));
         document.getElementById(idVista).classList.remove('hidden');
     };
-    const cargarEstadoUsuario = () => {
-        if (!datosGlobales[usuarioActivo]) {
-            datosGlobales[usuarioActivo] = { lotes: {}, plagas: [], loteActivo: null, valvulaActivaId: null, fechaUltimaLimpieza: null };
-        }
-        estado = datosGlobales[usuarioActivo];
-    };
 
     // ===================================================================================
-    //  5. FUNCIONES DE RENDERIZADO (DIBUJAR LA INTERFAZ)
+    //  6. FUNCIONES DE RENDERIZADO (DIBUJAR LA INTERFAZ)
     // ===================================================================================
     const renderBienvenida = () => {
         bienvenida.listaLotes.innerHTML = '<h3>Selecciona un Lote:</h3>';
-        const nombresLotes = Object.keys(estado.lotes);
+        const nombresLotes = (estado && estado.lotes) ? Object.keys(estado.lotes) : [];
         if (nombresLotes.length === 0) {
             const p = document.createElement('p');
             p.textContent = 'No hay lotes creados.';
@@ -257,50 +269,197 @@ document.addEventListener('DOMContentLoaded', () => {
     };
 
     // ===================================================================================
-    //  6. LÓGICA DE LA APLICACIÓN Y MANEJADORES DE EVENTOS
+    //  7. LÓGICA DE LA APLICACIÓN Y MANEJADORES DE EVENTOS
     // ===================================================================================
 
-    // --- Lógica de Login, Navegación, etc. ---
+    // --- Lógica de Autenticación ---
     login.linkRegistro.addEventListener('click', (e) => { e.preventDefault(); login.formLogin.classList.add('hidden'); login.formRegistro.classList.remove('hidden'); });
     login.linkLogin.addEventListener('click', (e) => { e.preventDefault(); login.formRegistro.classList.add('hidden'); login.formLogin.classList.remove('hidden'); });
-    login.btnRegistro.addEventListener('click', () => { const user = login.inputUsuarioRegistro.value.trim(); const pass = login.inputPasswordRegistro.value.trim(); if (!user || !pass) return alert('Usuario y contraseña no pueden estar vacíos.'); if (datosGlobales.users[user]) return alert('El nombre de usuario ya existe.'); datosGlobales.users[user] = pass; guardarDatosGlobales(); alert('¡Usuario registrado con éxito! Ahora puedes iniciar sesión.'); login.linkLogin.click(); });
-    login.btnLogin.addEventListener('click', () => { const user = login.inputUsuarioLogin.value.trim(); const pass = login.inputPasswordLogin.value.trim(); if (!user || !pass) return alert('Por favor, ingresa usuario y contraseña.'); if (!datosGlobales.users[user] || datosGlobales.users[user] !== pass) return alert('Usuario o contraseña incorrectos.'); usuarioActivo = user; localStorage.setItem('usuarioActivo', usuarioActivo); cargarEstadoUsuario(); iniciarAppParaUsuario(); });
-    bienvenida.btnLogout.addEventListener('click', () => { usuarioActivo = null; localStorage.removeItem('usuarioActivo'); estado = {}; mostrarVista('vista-login'); });
+    login.btnRegistro.addEventListener('click', () => {
+        const email = login.inputEmailRegistro.value;
+        const password = login.inputPasswordRegistro.value;
+        auth.createUserWithEmailAndPassword(email, password)
+            .then(() => alert('¡Usuario registrado con éxito! Ahora puedes iniciar sesión.'))
+            .catch(error => alert(`Error al registrar: ${error.message}`));
+    });
+    login.btnLogin.addEventListener('click', () => {
+        const email = login.inputEmailLogin.value;
+        const password = login.inputPasswordLogin.value;
+        auth.signInWithEmailAndPassword(email, password)
+            .catch(error => alert(`Error al iniciar sesión: ${error.message}`));
+    });
+    bienvenida.btnLogout.addEventListener('click', () => auth.signOut());
+
+    // --- Navegación ---
     bienvenida.btnGestionPlagas.addEventListener('click', () => { renderGestionPlagas(); mostrarVista('vista-gestion-plagas'); });
     bienvenida.btnConfigCalculo.addEventListener('click', () => { renderConfigCalculo(); mostrarVista('vista-config-calculo'); });
     bienvenida.btnResultados.addEventListener('click', () => { renderResultados(); mostrarVista('vista-resultados'); });
     evaluacion.btnVolver.addEventListener('click', () => mostrarVista('vista-bienvenida'));
-    gestionPlagas.btnVolver.addEventListener('click', () => { guardarDatosGlobales(); mostrarVista('vista-bienvenida'); });
+    gestionPlagas.btnVolver.addEventListener('click', () => { guardarEstadoEnFirebase(); mostrarVista('vista-bienvenida'); });
     configCalculo.btnVolver.addEventListener('click', () => mostrarVista('vista-bienvenida'));
     resultados.btnVolver.addEventListener('click', () => mostrarVista('vista-bienvenida'));
-    bienvenida.btnCrear.addEventListener('click', () => { const nombreLote = prompt('Ingrese el nombre del nuevo lote:'); if (nombreLote && !estado.lotes[nombreLote]) { estado.lotes[nombreLote] = { valvulas: [], ultimaModificacion: null }; renderBienvenida(); guardarDatosGlobales(); } else if (estado.lotes[nombreLote]) { alert('El lote ya existe.'); } });
-    bienvenida.listaLotes.addEventListener('click', (e) => { const selectBtn = e.target.closest('.lote-select-btn'); const editBtn = e.target.closest('.edit-lote-btn'); const deleteBtn = e.target.closest('.delete-lote-btn'); if (selectBtn) { estado.loteActivo = selectBtn.dataset.lote; const lote = estado.lotes[estado.loteActivo]; if (lote.valvulas.length === 0) { const idUnico = Date.now(); lote.valvulas.push({ id: idUnico, nombre: "Válvula 1", puntosEvaluados: 7, racimos: [], conteos: {} }); estado.valvulaActivaId = idUnico; } else { estado.valvulaActivaId = lote.valvulas[0].id; } renderEvaluacion(); mostrarVista('vista-evaluacion'); } else if (editBtn) { const nombreAntiguo = editBtn.dataset.lote; const nuevoNombre = prompt(`Ingrese el nuevo nombre para el lote "${nombreAntiguo}":`, nombreAntiguo); if (nuevoNombre && nuevoNombre !== nombreAntiguo) { if (estado.lotes[nuevoNombre]) { return alert('Error: Ya existe un lote con ese nombre.'); } estado.lotes[nuevoNombre] = estado.lotes[nombreAntiguo]; delete estado.lotes[nombreAntiguo]; if (estado.loteActivo === nombreAntiguo) { estado.loteActivo = nuevoNombre; } renderBienvenida(); guardarDatosGlobales(); } } else if (deleteBtn) { const nombreLote = deleteBtn.dataset.lote; if (confirm(`¿Estás seguro de que quieres eliminar el lote "${nombreLote}"? Se perderán todos sus datos permanentemente.`)) { delete estado.lotes[nombreLote]; if (estado.loteActivo === nombreLote) { estado.loteActivo = null; } renderBienvenida(); guardarDatosGlobales(); } } });
-    evaluacion.btnAgregarValvula.addEventListener('click', () => { const nombreValvula = prompt("Ingrese el nombre para la nueva válvula:", `Válvula ${estado.lotes[estado.loteActivo].valvulas.length + 1}`); if (!nombreValvula) return; const idUnico = Date.now(); estado.lotes[estado.loteActivo].valvulas.push({ id: idUnico, nombre: nombreValvula, puntosEvaluados: 7, racimos: [], conteos: {} }); estado.valvulaActivaId = idUnico; renderEvaluacion(); guardarDatosGlobales(); });
-    evaluacion.navValvulas.addEventListener('click', (e) => { const tab = e.target.closest('.tab-item'); if (!tab) return; const valvulaId = tab.dataset.id; if (e.target.matches('.edit-valvula-btn')) { const valvula = estado.lotes[estado.loteActivo].valvulas.find(v => v.id == valvulaId); const nuevoNombre = prompt(`Editar nombre de "${valvula.nombre}":`, valvula.nombre); if (nuevoNombre) { valvula.nombre = nuevoNombre; renderEvaluacion(); guardarDatosGlobales(); } } else if (e.target.matches('.delete-valvula-btn')) { if (confirm('¿Estás seguro de que quieres eliminar esta válvula?')) { estado.lotes[estado.loteActivo].valvulas = estado.lotes[estado.loteActivo].valvulas.filter(v => v.id != valvulaId); if (estado.valvulaActivaId == valvulaId) { estado.valvulaActivaId = estado.lotes[estado.loteActivo].valvulas[0]?.id || null; } renderEvaluacion(); guardarDatosGlobales(); } } else { estado.valvulaActivaId = valvulaId; renderEvaluacion(); } });
-    evaluacion.puntosInput.addEventListener('change', (e) => { const valvula = estado.lotes[estado.loteActivo].valvulas.find(v => v.id == estado.valvulaActivaId); if(!valvula) return; valvula.puntosEvaluados = parseInt(e.target.value) || 1; estado.lotes[estado.loteActivo].ultimaModificacion = new Date().toISOString(); renderContenidoValvula(); guardarDatosGlobales(); });
-    evaluacion.racimosContenedor.addEventListener('change', (e) => { if (e.target.matches('.racimo-input')) { const punto = parseInt(e.target.dataset.punto); const valor = parseInt(e.target.value) || 0; const valvula = estado.lotes[estado.loteActivo].valvulas.find(v => v.id == estado.valvulaActivaId); if(!valvula) return; valvula.racimos[punto] = valor; estado.lotes[estado.loteActivo].ultimaModificacion = new Date().toISOString(); guardarDatosGlobales(); } });
-    evaluacion.conteosContenedor.addEventListener('click', (e) => { if (e.target.matches('.delete-conteo-btn')) { const plaga = e.target.dataset.plaga; const index = parseInt(e.target.dataset.index); const valvula = estado.lotes[estado.loteActivo].valvulas.find(v => v.id == estado.valvulaActivaId); if (valvula && valvula.conteos[plaga]) { valvula.conteos[plaga].splice(index, 1); estado.lotes[estado.loteActivo].ultimaModificacion = new Date().toISOString(); renderContenidoValvula(); guardarDatosGlobales(); } } });
-    evaluacion.conteosContenedor.addEventListener('change', (e) => { if (e.target.matches('.conteo-input') && e.target.value) { const plaga = e.target.dataset.plaga; const valor = parseInt(e.target.value); const valvula = estado.lotes[estado.loteActivo].valvulas.find(v => v.id == estado.valvulaActivaId); if (!valvula) return; if (!valvula.conteos[plaga]) valvula.conteos[plaga] = []; valvula.conteos[plaga].push(valor); estado.lotes[estado.loteActivo].ultimaModificacion = new Date().toISOString(); renderContenidoValvula(); guardarDatosGlobales(); } });
-    gestionPlagas.btnAgregar.addEventListener('click', () => { const nombrePlaga = gestionPlagas.inputNueva.value.trim(); if (nombrePlaga && !estado.plagas.some(p => p.nombre === nombrePlaga)) { estado.plagas.push({ nombre: nombrePlaga, formula: "I / (P * 4)" }); renderGestionPlagas(); } });
-    gestionPlagas.lista.addEventListener('click', (e) => { if (e.target.matches('.delete-btn')) { const nombrePlaga = e.target.dataset.plaga; estado.plagas = estado.plagas.filter(p => p.nombre !== nombrePlaga); renderGestionPlagas(); } });
-    configCalculo.btnGuardar.addEventListener('click', () => { document.querySelectorAll('.formula-input').forEach(input => { const nombrePlaga = input.dataset.plaga; const plaga = estado.plagas.find(p => p.nombre === nombrePlaga); if (plaga) plaga.formula = input.value; }); guardarDatosGlobales(); alert('Fórmulas guardadas.'); mostrarVista('vista-bienvenida'); });
+
+    // --- Lógica de Bienvenida ---
+    bienvenida.btnCrear.addEventListener('click', () => {
+        const nombreLote = prompt('Ingrese el nombre del nuevo lote:');
+        if (nombreLote && !estado.lotes[nombreLote]) {
+            estado.lotes[nombreLote] = { valvulas: [], ultimaModificacion: null };
+            guardarEstadoEnFirebase();
+        } else if (estado.lotes[nombreLote]) {
+            alert('El lote ya existe.');
+        }
+    });
+    bienvenida.listaLotes.addEventListener('click', (e) => {
+        const selectBtn = e.target.closest('.lote-select-btn');
+        const editBtn = e.target.closest('.edit-lote-btn');
+        const deleteBtn = e.target.closest('.delete-lote-btn');
+        if (selectBtn) {
+            estado.loteActivo = selectBtn.dataset.lote;
+            const lote = estado.lotes[estado.loteActivo];
+            if (lote.valvulas.length === 0) {
+                const idUnico = Date.now();
+                lote.valvulas.push({ id: idUnico, nombre: "Válvula 1", puntosEvaluados: 7, racimos: [], conteos: {} });
+                estado.valvulaActivaId = idUnico;
+            } else {
+                estado.valvulaActivaId = lote.valvulas[0].id;
+            }
+            mostrarVista('vista-evaluacion');
+        } else if (editBtn) {
+            const nombreAntiguo = editBtn.dataset.lote;
+            const nuevoNombre = prompt(`Ingrese el nuevo nombre para el lote "${nombreAntiguo}":`, nombreAntiguo);
+            if (nuevoNombre && nuevoNombre !== nombreAntiguo) {
+                if (estado.lotes[nuevoNombre]) return alert('Error: Ya existe un lote con ese nombre.');
+                estado.lotes[nuevoNombre] = estado.lotes[nombreAntiguo];
+                delete estado.lotes[nombreAntiguo];
+                if (estado.loteActivo === nombreAntiguo) estado.loteActivo = nuevoNombre;
+                guardarEstadoEnFirebase();
+            }
+        } else if (deleteBtn) {
+            const nombreLote = deleteBtn.dataset.lote;
+            if (confirm(`¿Estás seguro de que quieres eliminar el lote "${nombreLote}"?`)) {
+                delete estado.lotes[nombreLote];
+                if (estado.loteActivo === nombreLote) estado.loteActivo = null;
+                guardarEstadoEnFirebase();
+            }
+        }
+    });
+
+    // --- Lógica de Evaluación ---
+    evaluacion.btnAgregarValvula.addEventListener('click', () => {
+        const nombreValvula = prompt("Nombre para la nueva válvula:", `Válvula ${estado.lotes[estado.loteActivo].valvulas.length + 1}`);
+        if (!nombreValvula) return;
+        const idUnico = Date.now();
+        estado.lotes[estado.loteActivo].valvulas.push({ id: idUnico, nombre: nombreValvula, puntosEvaluados: 7, racimos: [], conteos: {} });
+        estado.valvulaActivaId = idUnico;
+        guardarEstadoEnFirebase();
+    });
+    evaluacion.navValvulas.addEventListener('click', (e) => {
+        const tab = e.target.closest('.tab-item');
+        if (!tab) return;
+        const valvulaId = tab.dataset.id;
+        if (e.target.matches('.edit-valvula-btn')) {
+            const valvula = estado.lotes[estado.loteActivo].valvulas.find(v => v.id == valvulaId);
+            const nuevoNombre = prompt(`Editar nombre de "${valvula.nombre}":`, valvula.nombre);
+            if (nuevoNombre) {
+                valvula.nombre = nuevoNombre;
+                guardarEstadoEnFirebase();
+            }
+        } else if (e.target.matches('.delete-valvula-btn')) {
+            if (confirm('¿Seguro que quieres eliminar esta válvula?')) {
+                estado.lotes[estado.loteActivo].valvulas = estado.lotes[estado.loteActivo].valvulas.filter(v => v.id != valvulaId);
+                if (estado.valvulaActivaId == valvulaId) {
+                    estado.valvulaActivaId = estado.lotes[estado.loteActivo].valvulas[0]?.id || null;
+                }
+                guardarEstadoEnFirebase();
+            }
+        } else {
+            estado.valvulaActivaId = valvulaId;
+            renderEvaluacion();
+        }
+    });
+    evaluacion.puntosInput.addEventListener('change', (e) => {
+        const valvula = estado.lotes[estado.loteActivo].valvulas.find(v => v.id == estado.valvulaActivaId);
+        if(!valvula) return;
+        valvula.puntosEvaluados = parseInt(e.target.value) || 1;
+        estado.lotes[estado.loteActivo].ultimaModificacion = new Date().toISOString();
+        guardarEstadoEnFirebase();
+    });
+    evaluacion.racimosContenedor.addEventListener('change', (e) => {
+        if (e.target.matches('.racimo-input')) {
+            const punto = parseInt(e.target.dataset.punto);
+            const valor = parseInt(e.target.value) || 0;
+            const valvula = estado.lotes[estado.loteActivo].valvulas.find(v => v.id == estado.valvulaActivaId);
+            if(!valvula) return;
+            valvula.racimos[punto] = valor;
+            estado.lotes[estado.loteActivo].ultimaModificacion = new Date().toISOString();
+            guardarEstadoEnFirebase();
+        }
+    });
+    evaluacion.conteosContenedor.addEventListener('click', (e) => {
+        if (e.target.matches('.delete-conteo-btn')) {
+            const plaga = e.target.dataset.plaga;
+            const index = parseInt(e.target.dataset.index);
+            const valvula = estado.lotes[estado.loteActivo].valvulas.find(v => v.id == estado.valvulaActivaId);
+            if (valvula && valvula.conteos[plaga]) {
+                valvula.conteos[plaga].splice(index, 1);
+                estado.lotes[estado.loteActivo].ultimaModificacion = new Date().toISOString();
+                guardarEstadoEnFirebase();
+            }
+        }
+    });
+    evaluacion.conteosContenedor.addEventListener('change', (e) => {
+        if (e.target.matches('.conteo-input') && e.target.value) {
+            const plaga = e.target.dataset.plaga;
+            const valor = parseInt(e.target.value);
+            const valvula = estado.lotes[estado.loteActivo].valvulas.find(v => v.id == estado.valvulaActivaId);
+            if (!valvula) return;
+            if (!valvula.conteos[plaga]) valvula.conteos[plaga] = [];
+            valvula.conteos[plaga].push(valor);
+            estado.lotes[estado.loteActivo].ultimaModificacion = new Date().toISOString();
+            guardarEstadoEnFirebase();
+        }
+    });
+
+    // --- Lógica de Gestión de Plagas ---
+    gestionPlagas.btnAgregar.addEventListener('click', () => {
+        const nombrePlaga = gestionPlagas.inputNueva.value.trim();
+        if (nombrePlaga && !estado.plagas.some(p => p.nombre === nombrePlaga)) {
+            estado.plagas.push({ nombre: nombrePlaga, formula: "I / (P * 4)" });
+            guardarEstadoEnFirebase();
+        }
+    });
+    gestionPlagas.lista.addEventListener('click', (e) => {
+        if (e.target.matches('.delete-btn')) {
+            const nombrePlaga = e.target.dataset.plaga;
+            estado.plagas = estado.plagas.filter(p => p.nombre !== nombrePlaga);
+            guardarEstadoEnFirebase();
+        }
+    });
+
+    // --- Lógica de Configuración de Cálculos ---
+    configCalculo.btnGuardar.addEventListener('click', () => {
+        document.querySelectorAll('.formula-input').forEach(input => {
+            const nombrePlaga = input.dataset.plaga;
+            const plaga = estado.plagas.find(p => p.nombre === nombrePlaga);
+            if (plaga) plaga.formula = input.value;
+        });
+        guardarEstadoEnFirebase();
+        alert('Fórmulas guardadas.');
+        mostrarVista('vista-bienvenida');
+    });
     
     // --- Lógica de Resultados ---
     resultados.listaLotes.addEventListener('click', (e) => { const targetButton = e.target.closest('.lote-select-resultados-btn'); if (targetButton) { renderTablaResultados(targetButton.dataset.lote); } });
-    
     const exportarDatos = (separador) => {
         const nombreLote = resultados.tituloLote.textContent.replace('Resultados para: ', '');
         const lote = estado.lotes[nombreLote];
         if (!lote) return alert('No hay un lote seleccionado para exportar.');
-
         const getWeekNumber = (d) => { d = new Date(Date.UTC(d.getFullYear(), d.getMonth(), d.getDate())); d.setUTCDate(d.getUTCDate() + 4 - (d.getUTCDay() || 7)); const yearStart = new Date(Date.UTC(d.getUTCFullYear(), 0, 1)); return Math.ceil((((d - yearStart) / 86400000) + 1) / 7); };
         const calcularPromedio = (plaga, valvula) => { const I = (valvula.conteos[plaga.nombre] || []).reduce((a, b) => a + b, 0); const P = valvula.puntosEvaluados; const R = valvula.racimos.reduce((a, b) => a + b, 0); try { return new Function('I', 'P', 'R', `return ${plaga.formula}`)(I, P, R) || 0; } catch (e) { console.error(`Error en la fórmula para ${plaga.nombre}:`, e); return 0; } };
-        
         let dataRows = [];
         const hoy = new Date();
         const semana = getWeekNumber(hoy);
         const fecha = hoy.toLocaleDateString('es-ES');
-
         dataRows.push(['Semana', semana, 'Lote', nombreLote, 'Fecha', fecha]);
         const nombresValvulas = lote.valvulas.map(v => v.nombre);
         dataRows.push(['', ...nombresValvulas]);
@@ -308,30 +467,47 @@ document.addEventListener('DOMContentLoaded', () => {
             const fila = [plaga.nombre];
             lote.valvulas.forEach(valvula => {
                 const promedio = calcularPromedio(plaga, valvula);
-                // *** CORRECCIÓN: Usamos un método robusto para los decimales ***
                 if (separador === ';') {
-                    // Para PC/Excel en español, es crucial usar la coma como decimal.
-                    // toLocaleString es más seguro que un simple replace.
                     fila.push(promedio.toLocaleString('es-PE', { minimumFractionDigits: 4, maximumFractionDigits: 4 }));
                 } else {
-                    // Para Móvil, el punto decimal es más estándar.
                     fila.push(promedio.toFixed(4));
                 }
             });
             dataRows.push(fila);
         });
-
         const content = dataRows.map(row => row.join(separador)).join("\n");
         const blob = new Blob(['\uFEFF' + content], { type: 'text/csv;charset=utf-8;' });
         saveAs(blob, `informe_${nombreLote}_${fecha.replace(/\//g, '-')}.csv`);
     };
-
     resultados.btnExportarPC.addEventListener('click', () => exportarDatos(';'));
     resultados.btnExportarMovil.addEventListener('click', () => exportarDatos(','));
 
     // ===================================================================================
-    //  7. INICIALIZACIÓN DE LA APLICACIÓN
+    //  8. INICIALIZACIÓN DE LA APLICACIÓN Y ESTADO DE AUTENTICACIÓN
     // ===================================================================================
+    auth.onAuthStateChanged(user => {
+        if (user) {
+            usuarioActivo = user;
+            if (unsubscribe) unsubscribe();
+            unsubscribe = db.collection('usuarios').doc(user.uid).onSnapshot(doc => {
+                if (doc.exists) {
+                    estado = doc.data();
+                } else {
+                    estado = { lotes: {}, plagas: [], loteActivo: null, valvulaActivaId: null, fechaUltimaLimpieza: null };
+                    guardarEstadoEnFirebase();
+                }
+                iniciarAppParaUsuario();
+            }, error => {
+                console.error("Error al escuchar los datos:", error);
+            });
+        } else {
+            usuarioActivo = null;
+            estado = {};
+            if (unsubscribe) unsubscribe();
+            mostrarVista('vista-login');
+        }
+    });
+
     const iniciarAppParaUsuario = () => {
         const hoy = new Date().toDateString();
         if (estado.fechaUltimaLimpieza !== hoy) {
@@ -341,24 +517,10 @@ document.addEventListener('DOMContentLoaded', () => {
                 });
             }
             estado.fechaUltimaLimpieza = hoy;
-            guardarDatosGlobales();
+            guardarEstadoEnFirebase();
         }
-        bienvenida.titulo.textContent = `Bienvenido, ${usuarioActivo}`;
+        bienvenida.titulo.textContent = `Bienvenido, ${usuarioActivo.email}`;
         renderBienvenida();
         mostrarVista('vista-bienvenida');
     };
-
-    const verificarSesion = () => {
-        cargarDatosGlobales();
-        const sesionGuardada = localStorage.getItem('usuarioActivo');
-        if (sesionGuardada && datosGlobales.users[sesionGuardada]) {
-            usuarioActivo = sesionGuardada;
-            cargarEstadoUsuario();
-            iniciarAppParaUsuario();
-        } else {
-            mostrarVista('vista-login');
-        }
-    };
-
-    verificarSesion();
 });

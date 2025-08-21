@@ -3,29 +3,26 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <!-- NUEVA LÍNEA: Conecta con el archivo de manifiesto -->
     <link rel="manifest" href="manifest.json">
-    
     <title>Sistema Agrícola de Evaluación</title>
     <link rel="stylesheet" href="styles.css">
 </head>
 <body>
 
-    <!-- Todo el contenido de tus vistas (login, bienvenida, etc.) va aquí sin cambios -->
     <!-- VISTA DE INICIO DE SESIÓN / REGISTRO -->
     <div id="vista-login" class="view">
         <div class="card">
             <h1>Bienvenido al Sistema</h1>
             <div id="login-form">
                 <h2>Iniciar Sesión</h2>
-                <input type="text" id="login-usuario" placeholder="Nombre de usuario" autocomplete="username">
+                <input type="email" id="login-email" placeholder="Correo electrónico" autocomplete="email">
                 <input type="password" id="login-password" placeholder="Contraseña" autocomplete="current-password">
                 <button id="btn-login" class="btn btn-primary">Entrar</button>
                 <p>¿No tienes cuenta? <a href="#" id="link-a-registro">Regístrate aquí</a></p>
             </div>
             <div id="registro-form" class="hidden">
                 <h2>Registrar Nuevo Usuario</h2>
-                <input type="text" id="registro-usuario" placeholder="Elige un nombre de usuario" autocomplete="username">
+                <input type="email" id="registro-email" placeholder="Tu correo electrónico" autocomplete="email">
                 <input type="password" id="registro-password" placeholder="Elige una contraseña" autocomplete="new-password">
                 <button id="btn-registro" class="btn btn-primary">Registrar</button>
                 <p>¿Ya tienes cuenta? <a href="#" id="link-a-login">Inicia sesión</a></p>
@@ -33,7 +30,7 @@
         </div>
     </div>
 
-    <!-- VISTA DE BIENVENIDA Y SELECCIÓN DE LOTE -->
+    <!-- El resto de las vistas no cambian -->
     <div id="vista-bienvenida" class="view hidden">
         <div class="card">
             <div class="header-bienvenida">
@@ -50,7 +47,6 @@
         </div>
     </div>
 
-    <!-- VISTA PRINCIPAL DE EVALUACIÓN -->
     <div id="vista-evaluacion" class="view hidden">
         <header>
             <h1 id="evaluacion-titulo-lote"></h1>
@@ -74,7 +70,6 @@
         </main>
     </div>
 
-    <!-- VISTA DE GESTIÓN DE PLAGAS -->
     <div id="vista-gestion-plagas" class="view hidden">
         <div class="card">
             <h2>Gestión de Plagas</h2>
@@ -86,7 +81,6 @@
         </div>
     </div>
 
-    <!-- VISTA DE RESULTADOS -->
     <div id="vista-resultados" class="view hidden">
         <div class="card">
             <h2>Resultados del Día</h2>
@@ -107,7 +101,6 @@
         </div>
     </div>
     
-    <!-- VISTA DE CONFIGURACIÓN DE CÁLCULOS -->
     <div id="vista-config-calculo" class="view hidden">
          <div class="card">
             <h2>Configuración de Fórmulas</h2>
@@ -118,10 +111,15 @@
          </div>
     </div>
 
+    <!-- Scripts de Firebase -->
+    <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-app.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-auth.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-firestore.js"></script>
+
+    <!-- Scripts de la Aplicación -->
     <script src="https://cdnjs.cloudflare.com/ajax/libs/FileSaver.js/2.0.5/FileSaver.min.js"></script>
     <script src="app.js"></script>
     
-    <!-- NUEVO SCRIPT: Registra el Service Worker -->
     <script>
       if ('serviceWorker' in navigator) {
         window.addEventListener('load', () => {
