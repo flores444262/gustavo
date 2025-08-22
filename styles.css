@@ -10,9 +10,9 @@
     --danger-hover: #c0392b;
     --dark-color: #2c3e50;
     --light-color: #ffffff;
-    --grey-light: #f0f2f5;
-    --grey-medium: #bdc3c7;
-    --grey-dark: #7f8c8d;
+    --grey-light: #f4f6f9; /* Un poco más claro */
+    --grey-medium: #dfe4ea;
+    --grey-dark: #576574;
     --font-family: 'Inter', sans-serif;
     --border-radius: 8px;
     --shadow: 0 4px 12px rgba(0,0,0,0.1);
@@ -21,14 +21,57 @@
 body {
     font-family: var(--font-family);
     margin: 0;
-    background-color: var(--grey-light);
+    /* NUEVO FONDO DE PANTALLA */
+    background-image: linear-gradient(rgba(244, 246, 249, 0.9), rgba(244, 246, 249, 0.9)), url('https://images.unsplash.com/photo-1563242652-32095b6295a3?q=80&w=2070&auto=format&fit=crop');
+    background-size: cover;
+    background-position: center;
+    background-attachment: fixed;
+    
     color: var(--dark-color);
     display: flex;
     justify-content: center;
     align-items: flex-start;
     padding: 20px;
     min-height: 100vh;
+    box-sizing: border-box;
 }
+
+/* ========================================================== */
+/* PANTALLA DE BIENVENIDA ANIMADA */
+/* ========================================================== */
+#welcome-overlay {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background-color: var(--primary-color);
+    background-image: linear-gradient(rgba(0,0,0,0.5), rgba(0,0,0,0.5)), url('https://images.unsplash.com/photo-1557682250-33bd709cbe85?q=80&w=2070&auto=format&fit=crop');
+    background-size: cover;
+    background-position: center;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    z-index: 1000;
+    opacity: 0;
+    transition: opacity 0.5s ease-in-out;
+}
+#welcome-overlay.visible {
+    opacity: 1;
+}
+#welcome-message {
+    color: white;
+    font-size: 2em;
+    text-shadow: 2px 2px 4px rgba(0,0,0,0.5);
+    animation: scaleAndFade 2.5s ease-in-out forwards;
+}
+
+@keyframes scaleAndFade {
+    0% { transform: scale(0.5); opacity: 0; }
+    50% { transform: scale(1.2); opacity: 1; }
+    100% { transform: scale(1); opacity: 0; }
+}
+
 
 /* ========================================================== */
 /* ESTRUCTURA Y VISTAS */
@@ -140,8 +183,8 @@ label {
 .edit-lote-btn:hover, .delete-lote-btn:hover { background-color: var(--grey-light); }
 .delete-lote-btn:hover { color: var(--danger-color); }
 
-.tabs-nav { display: flex; flex-wrap: wrap; margin-bottom: 15px; padding-bottom: 10px; }
-.tab-item { display: flex; align-items: center; padding: 10px 20px; cursor: pointer; border: 1px solid transparent; background-color: var(--grey-light); margin: 5px; border-radius: var(--border-radius); transition: all 0.2s; }
+.tabs-nav { display: flex; flex-wrap: nowrap; margin-bottom: 15px; padding-bottom: 10px; overflow-x: auto; }
+.tab-item { display: flex; align-items: center; padding: 10px 20px; cursor: pointer; border: 1px solid transparent; background-color: var(--grey-light); margin: 5px; border-radius: var(--border-radius); transition: all 0.2s; white-space: nowrap; }
 .tab-item.active { background-color: var(--dark-color); color: white; }
 .tab-item:not(.active):hover { background-color: #e0e0e0; }
 .edit-valvula-btn, .delete-valvula-btn { font-size: 0.8em; margin-left: 10px; padding: 5px; border-radius: 50%; }
@@ -163,6 +206,16 @@ tr:nth-child(even) { background-color: #f9f9f9; }
 .export-buttons-container .btn { width: auto; }
 
 /* ========================================================== */
+/* LOGIN Y BIENVENIDA */
+/* ========================================================== */
+#vista-login .card { max-width: 400px; margin: 50px auto; }
+#vista-login a { color: #2980b9; cursor: pointer; }
+.header-bienvenida { display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px; }
+.header-bienvenida h1 { margin: 0; }
+#btn-logout { background-color: var(--danger-color); color: white; }
+#btn-logout:hover { background-color: var(--danger-hover); }
+
+/* ========================================================== */
 /* ESTILOS RESPONSIVOS */
 /* ========================================================== */
 @media (max-width: 768px) {
@@ -171,6 +224,6 @@ tr:nth-child(even) { background-color: #f9f9f9; }
     .btn { width: 100%; padding: 15px; }
     .navigation-buttons { grid-template-columns: 1fr; }
     .export-buttons-container { flex-direction: column; }
-    .header-bienvenida, .view-header { flex-direction: column; gap: 10px; }
-    .tabs-nav { overflow-x: auto; white-space: nowrap; justify-content: flex-start; }
+    .export-buttons-container .btn { width: 100%; }
+    .header-bienvenida, .view-header { flex-direction: column; gap: 10px; text-align: center; }
 }

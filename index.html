@@ -4,16 +4,18 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <link rel="manifest" href="manifest.json">
-    
-    <!-- Nueva tipografía profesional -->
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;700&display=swap" rel="stylesheet">
-    
     <title>Sistema Agrícola de Evaluación</title>
     <link rel="stylesheet" href="styles.css">
 </head>
 <body>
+
+    <!-- NUEVA PANTALLA DE BIENVENIDA ANIMADA -->
+    <div id="welcome-overlay" class="hidden">
+        <h1 id="welcome-message"></h1>
+    </div>
 
     <!-- VISTA DE INICIO DE SESIÓN / REGISTRO -->
     <div id="vista-login" class="view">
@@ -28,6 +30,8 @@
             </div>
             <div id="registro-form" class="hidden">
                 <h2>Registrar Nuevo Usuario</h2>
+                <!-- Campo de Nombre añadido -->
+                <input type="text" id="registro-nombre" placeholder="Tu nombre" autocomplete="name">
                 <input type="email" id="registro-email" placeholder="Tu correo electrónico" autocomplete="email">
                 <input type="password" id="registro-password" placeholder="Elige una contraseña" autocomplete="new-password">
                 <button id="btn-registro" class="btn btn-primary">Registrar</button>
@@ -40,7 +44,7 @@
     <div id="vista-bienvenida" class="view hidden">
         <div class="card">
             <div class="header-bienvenida">
-                <h1 id="titulo-bienvenida">Sistema de Evaluación Agrícola</h1>
+                <h1 id="titulo-bienvenida"></h1>
                 <button id="btn-logout" class="btn btn-danger">Cerrar Sesión</button>
             </div>
             <p>¿Qué lote se evaluará hoy?</p>
@@ -55,7 +59,7 @@
         </div>
     </div>
 
-    <!-- VISTA PRINCIPAL DE EVALUACIÓN -->
+    <!-- VISTAS RESTANTES (sin cambios en la estructura) -->
     <div id="vista-evaluacion" class="view hidden">
         <header class="view-header">
             <h1 id="evaluacion-titulo-lote"></h1>
@@ -79,7 +83,6 @@
         </main>
     </div>
 
-    <!-- VISTA DE GESTIÓN DE PLAGAS -->
     <div id="vista-gestion-plagas" class="view hidden">
         <header class="view-header">
             <h2>Gestión de Plagas</h2>
@@ -93,7 +96,6 @@
         </div>
     </div>
 
-    <!-- VISTA DE RESULTADOS -->
     <div id="vista-resultados" class="view hidden">
         <header class="view-header">
             <h2>Resultados del Día</h2>
@@ -116,9 +118,8 @@
         </div>
     </div>
     
-    <!-- VISTA DE CONFIGURACIÓN DE CÁLCULOS -->
     <div id="vista-config-calculo" class="view hidden">
-        <header class="view-header">
+         <header class="view-header">
             <h2>Configuración de Fórmulas</h2>
             <button id="btn-volver-inicio-desde-config" class="btn">Volver al Inicio</button>
         </header>

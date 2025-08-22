@@ -12,8 +12,7 @@ document.addEventListener('DOMContentLoaded', () => {
   appId: "1:549720320374:web:6594b3d1c797817a387257",
   measurementId: "G-E384DM924T"
 };
-
-    firebase.initializeApp(firebaseConfig);
+ firebase.initializeApp(firebaseConfig);
     const auth = firebase.auth();
     const db = firebase.firestore();
     let unsubscribe;
@@ -23,12 +22,16 @@ document.addEventListener('DOMContentLoaded', () => {
     // ===================================================================================
     let estado = {}; 
     let usuarioActivo = null;
-    let vistaActiva = 'vista-login'; // Rastreador de la vista actual
+    let appInicializada = false;
 
     // ===================================================================================
     //  3. SELECTORES DEL DOM
     // ===================================================================================
     const vistas = document.querySelectorAll('.view');
+    const welcomeOverlay = {
+        overlay: document.getElementById('welcome-overlay'),
+        message: document.getElementById('welcome-message'),
+    };
     const login = {
         vista: document.getElementById('vista-login'),
         formLogin: document.getElementById('login-form'),
@@ -37,6 +40,7 @@ document.addEventListener('DOMContentLoaded', () => {
         btnLogin: document.getElementById('btn-login'),
         linkRegistro: document.getElementById('link-a-registro'),
         formRegistro: document.getElementById('registro-form'),
+        inputNombreRegistro: document.getElementById('registro-nombre'),
         inputEmailRegistro: document.getElementById('registro-email'),
         inputPasswordRegistro: document.getElementById('registro-password'),
         btnRegistro: document.getElementById('btn-registro'),
@@ -92,79 +96,80 @@ document.addEventListener('DOMContentLoaded', () => {
     // ===================================================================================
     const guardarEstadoEnFirebase = () => {
         if (usuarioActivo) {
-            db.collection('usuarios').doc(usuarioActivo.uid).set(estado, { merge: true })
+            db.collection('datos_usuarios').doc(usuarioActivo.uid).set(estado, { merge: true })
                 .catch(error => console.error("Error al guardar datos:", error));
         }
     };
 
     // ===================================================================================
-    //  5. LÓGICA DE NAVEGACIÓN
+    //  5. LÓGICA DE NAVEGACIÓN Y VISTAS
     // ===================================================================================
     const mostrarVista = (idVista) => {
-        vistaActiva = idVista;
         vistas.forEach(vista => vista.classList.add('hidden'));
         document.getElementById(idVista).classList.remove('hidden');
+    };
+    const mostrarAnimacionBienvenida = (nombre) => {
+        welcomeOverlay.message.textContent = `Hola, ${nombre}`;
+        welcomeOverlay.overlay.classList.remove('hidden');
+        welcomeOverlay.overlay.classList.add('visible');
+        setTimeout(() => {
+            welcomeOverlay.overlay.classList.remove('visible');
+            setTimeout(() => {
+                welcomeOverlay.overlay.classList.add('hidden');
+                mostrarVista('vista-bienvenida');
+            }, 500);
+        }, 2500);
     };
 
     // ===================================================================================
     //  6. FUNCIONES DE RENDERIZADO
     // ===================================================================================
+    const renderizarVistaActual = () => {
+        const vistaVisible = document.querySelector('.view:not(.hidden):not(#welcome-overlay)');
+        if (!vistaVisible) {
+            renderBienvenida();
+            return;
+        };
+        switch (vistaVisible.id) {
+            case 'vista-bienvenida': renderBienvenida(); break;
+            case 'vista-evaluacion': renderEvaluacion(); break;
+            case 'vista-gestion-plagas': renderGestionPlagas(); break;
+            case 'vista-config-calculo': renderConfigCalculo(); break;
+            case 'vista-resultados': renderResultados(); break;
+        }
+    };
     const renderBienvenida = () => {
-        bienvenida.listaLotes.innerHTML = '<h3>Selecciona un Lote:</h3>';
         const nombresLotes = (estado && estado.lotes) ? Object.keys(estado.lotes) : [];
+        bienvenida.listaLotes.innerHTML = '<h3>Selecciona un Lote:</h3>';
         if (nombresLotes.length === 0) {
-            const p = document.createElement('p');
-            p.textContent = 'No hay lotes creados.';
-            bienvenida.listaLotes.appendChild(p);
+            bienvenida.listaLotes.innerHTML += '<p>No hay lotes creados.</p>';
         } else {
             nombresLotes.forEach(nombreLote => {
-                const buttonContainer = document.createElement('div');
-                buttonContainer.className = 'lote-button-container';
-                const button = document.createElement('button');
-                button.className = 'btn lote-select-btn';
-                button.dataset.lote = nombreLote;
-                button.textContent = nombreLote;
-                const editBtn = document.createElement('span');
-                editBtn.className = 'edit-lote-btn';
-                editBtn.dataset.lote = nombreLote;
-                editBtn.textContent = '✏️';
-                editBtn.title = 'Editar nombre del lote';
-                const deleteBtn = document.createElement('span');
-                deleteBtn.className = 'delete-lote-btn';
-                deleteBtn.dataset.lote = nombreLote;
-                deleteBtn.textContent = '🗑️';
-                deleteBtn.title = 'Eliminar lote';
-                buttonContainer.appendChild(button);
-                buttonContainer.appendChild(editBtn);
-                buttonContainer.appendChild(deleteBtn);
-                bienvenida.listaLotes.appendChild(buttonContainer);
+                bienvenida.listaLotes.innerHTML += `
+                    <div class="lote-button-container">
+                        <button class="btn lote-select-btn" data-lote="${nombreLote}">${nombreLote}</button>
+                        <span class="edit-lote-btn" data-lote="${nombreLote}" title="Editar nombre">✏️</span>
+                        <span class="delete-lote-btn" data-lote="${nombreLote}" title="Eliminar lote">🗑️</span>
+                    </div>`;
             });
         }
     };
     const renderEvaluacion = () => {
-        if (!estado.loteActivo || !estado.lotes[estado.loteActivo]) return;
+        if (!estado.loteActivo || !estado.lotes[estado.loteActivo]) {
+            mostrarVista('vista-bienvenida');
+            renderBienvenida();
+            return;
+        }
         const lote = estado.lotes[estado.loteActivo];
         evaluacion.titulo.textContent = `Evaluando: ${estado.loteActivo}`;
         evaluacion.navValvulas.innerHTML = '';
-        lote.valvulas.forEach(valvula => {
-            const tab = document.createElement('div');
-            tab.className = 'tab-item';
-            tab.dataset.id = valvula.id;
-            const nombreSpan = document.createElement('span');
-            nombreSpan.textContent = valvula.nombre;
-            const editBtn = document.createElement('span');
-            editBtn.textContent = ' ✏️';
-            editBtn.className = 'edit-valvula-btn';
-            editBtn.title = 'Editar nombre';
-            const deleteBtn = document.createElement('span');
-            deleteBtn.textContent = '🗑️';
-            deleteBtn.className = 'delete-valvula-btn';
-            deleteBtn.title = 'Eliminar válvula';
-            tab.appendChild(nombreSpan);
-            tab.appendChild(editBtn);
-            tab.appendChild(deleteBtn);
-            if (valvula.id == estado.valvulaActivaId) tab.classList.add('active');
-            evaluacion.navValvulas.appendChild(tab);
+        (lote.valvulas || []).forEach(valvula => {
+            evaluacion.navValvulas.innerHTML += `
+                <div class="tab-item ${valvula.id == estado.valvulaActivaId ? 'active' : ''}" data-id="${valvula.id}">
+                    <span>${valvula.nombre}</span>
+                    <span class="edit-valvula-btn" title="Editar nombre">✏️</span>
+                    <span class="delete-valvula-btn" title="Eliminar válvula">🗑️</span>
+                </div>`;
         });
         renderContenidoValvula();
     };
@@ -211,16 +216,10 @@ document.addEventListener('DOMContentLoaded', () => {
             return lote.ultimaModificacion && new Date(lote.ultimaModificacion).toDateString() === new Date().toDateString();
         });
         if (lotesModificadosHoy.length === 0) {
-            const p = document.createElement('p');
-            p.textContent = 'Ningún lote ha sido modificado hoy.';
-            resultados.listaLotes.appendChild(p);
+            resultados.listaLotes.innerHTML += '<p>Ningún lote ha sido modificado hoy.</p>';
         } else {
             lotesModificadosHoy.forEach(nombreLote => {
-                const button = document.createElement('button');
-                button.className = 'btn lote-select-resultados-btn';
-                button.dataset.lote = nombreLote;
-                button.textContent = nombreLote;
-                resultados.listaLotes.appendChild(button);
+                resultados.listaLotes.innerHTML += `<button class="btn lote-select-resultados-btn" data-lote="${nombreLote}">${nombreLote}</button>`;
             });
         }
         resultados.contenido.classList.add('hidden');
@@ -234,10 +233,9 @@ document.addEventListener('DOMContentLoaded', () => {
         const totalIndividuos = {};
         lote.valvulas.forEach(valvula => {
             totalPuntos += valvula.puntosEvaluados;
-            totalRacimos += valvula.racimos.reduce((a, b) => a + b, 0);
+            totalRacimos += (valvula.racimos || []).reduce((a, b) => a + b, 0);
             for (const pNombre in valvula.conteos) {
-                const sumaConteo = valvula.conteos[pNombre].reduce((a, b) => a + b, 0);
-                totalIndividuos[pNombre] = (totalIndividuos[pNombre] || 0) + sumaConteo;
+                totalIndividuos[pNombre] = (totalIndividuos[pNombre] || 0) + valvula.conteos[pNombre].reduce((a, b) => a + b, 0);
             }
         });
         let tablaGeneralHTML = `<thead><tr><th>Plaga</th><th>Total Individuos</th><th>Promedio General</th></tr></thead><tbody>`;
@@ -256,7 +254,7 @@ document.addEventListener('DOMContentLoaded', () => {
             (estado.plagas || []).forEach(plaga => {
                 const I = (valvula.conteos[plaga.nombre] || []).reduce((a, b) => a + b, 0);
                 const P = valvula.puntosEvaluados;
-                const R = valvula.racimos.reduce((a, b) => a + b, 0);
+                const R = (valvula.racimos || []).reduce((a, b) => a + b, 0);
                 let promedio = 0;
                 try { promedio = new Function('I', 'P', 'R', `return ${plaga.formula}`)(I, P, R); } catch (e) { console.error('Error en formula:', e); }
                 tablasValvulasHTML += `<tr><td>${plaga.nombre}</td><td>${I}</td><td>${promedio.toFixed(4)}</td></tr>`;
@@ -275,36 +273,36 @@ document.addEventListener('DOMContentLoaded', () => {
     login.linkRegistro.addEventListener('click', (e) => { e.preventDefault(); login.formLogin.classList.add('hidden'); login.formRegistro.classList.remove('hidden'); });
     login.linkLogin.addEventListener('click', (e) => { e.preventDefault(); login.formRegistro.classList.add('hidden'); login.formLogin.classList.remove('hidden'); });
     login.btnRegistro.addEventListener('click', () => {
-        const email = login.inputEmailRegistro.value;
-        const password = login.inputPasswordRegistro.value;
+        const nombre = login.inputNombreRegistro.value.trim();
+        const email = login.inputEmailRegistro.value.trim();
+        const password = login.inputPasswordRegistro.value.trim();
+        if (!nombre || !email || !password) return alert('Todos los campos son obligatorios.');
         auth.createUserWithEmailAndPassword(email, password)
-            .then(() => {
-                alert('¡Usuario registrado con éxito! Ahora puedes iniciar sesión.');
-                login.linkLogin.click();
-            })
+            .then(userCredential => db.collection('perfiles_usuarios').doc(userCredential.user.uid).set({ nombre, email }))
+            .then(() => { alert('¡Usuario registrado con éxito!'); login.linkLogin.click(); })
             .catch(error => alert(`Error al registrar: ${error.message}`));
     });
     login.btnLogin.addEventListener('click', () => {
         const email = login.inputEmailLogin.value;
         const password = login.inputPasswordLogin.value;
-        auth.signInWithEmailAndPassword(email, password)
-            .catch(error => alert(`Error al iniciar sesión: ${error.message}`));
+        auth.signInWithEmailAndPassword(email, password).catch(error => alert(`Error al iniciar sesión: ${error.message}`));
     });
     bienvenida.btnLogout.addEventListener('click', () => auth.signOut());
 
     // --- Navegación ---
-    bienvenida.btnGestionPlagas.addEventListener('click', () => mostrarVista('vista-gestion-plagas'));
-    bienvenida.btnConfigCalculo.addEventListener('click', () => mostrarVista('vista-config-calculo'));
-    bienvenida.btnResultados.addEventListener('click', () => mostrarVista('vista-resultados'));
-    evaluacion.btnVolver.addEventListener('click', () => mostrarVista('vista-bienvenida'));
+    bienvenida.btnGestionPlagas.addEventListener('click', () => { mostrarVista('vista-gestion-plagas'); renderGestionPlagas(); });
+    bienvenida.btnConfigCalculo.addEventListener('click', () => { mostrarVista('vista-config-calculo'); renderConfigCalculo(); });
+    bienvenida.btnResultados.addEventListener('click', () => { mostrarVista('vista-resultados'); renderResultados(); });
+    evaluacion.btnVolver.addEventListener('click', () => { estado.loteActivo = null; estado.valvulaActivaId = null; mostrarVista('vista-bienvenida'); renderBienvenida(); });
     gestionPlagas.btnVolver.addEventListener('click', () => { guardarEstadoEnFirebase(); mostrarVista('vista-bienvenida'); });
     configCalculo.btnVolver.addEventListener('click', () => mostrarVista('vista-bienvenida'));
     resultados.btnVolver.addEventListener('click', () => mostrarVista('vista-bienvenida'));
 
-    // --- Lógica de Bienvenida ---
+    // --- Lógica de Bienvenida (CORREGIDA) ---
     bienvenida.btnCrear.addEventListener('click', () => {
         const nombreLote = prompt('Ingrese el nombre del nuevo lote:');
         if (nombreLote && !estado.lotes[nombreLote]) {
+            if(!estado.lotes) estado.lotes = {};
             estado.lotes[nombreLote] = { valvulas: [], ultimaModificacion: null };
             guardarEstadoEnFirebase();
         } else if (estado.lotes[nombreLote]) {
@@ -318,31 +316,40 @@ document.addEventListener('DOMContentLoaded', () => {
         if (selectBtn) {
             estado.loteActivo = selectBtn.dataset.lote;
             const lote = estado.lotes[estado.loteActivo];
-            if (lote.valvulas.length === 0) {
+            if ((lote.valvulas || []).length === 0) {
                 const idUnico = Date.now();
-                lote.valvulas.push({ id: idUnico, nombre: "Válvula 1", puntosEvaluados: 7, racimos: [], conteos: {} });
+                lote.valvulas = [{ id: idUnico, nombre: "Válvula 1", puntosEvaluados: 7, racimos: [], conteos: {} }];
                 estado.valvulaActivaId = idUnico;
                 guardarEstadoEnFirebase();
             } else {
                 estado.valvulaActivaId = lote.valvulas[0].id;
             }
             mostrarVista('vista-evaluacion');
+            renderEvaluacion();
         } else if (editBtn) {
             const nombreAntiguo = editBtn.dataset.lote;
             const nuevoNombre = prompt(`Ingrese el nuevo nombre para el lote "${nombreAntiguo}":`, nombreAntiguo);
             if (nuevoNombre && nuevoNombre !== nombreAntiguo) {
                 if (estado.lotes[nuevoNombre]) return alert('Error: Ya existe un lote con ese nombre.');
-                estado.lotes[nuevoNombre] = estado.lotes[nombreAntiguo];
-                delete estado.lotes[nombreAntiguo];
-                if (estado.loteActivo === nombreAntiguo) estado.loteActivo = nuevoNombre;
-                guardarEstadoEnFirebase();
+                // Usamos el método de actualización de Firebase para renombrar la clave del mapa
+                const updates = {};
+                updates[`lotes.${nuevoNombre}`] = estado.lotes[nombreAntiguo];
+                updates[`lotes.${nombreAntiguo}`] = firebase.firestore.FieldValue.delete();
+                if (estado.loteActivo === nombreAntiguo) {
+                    updates['loteActivo'] = nuevoNombre;
+                }
+                db.collection('datos_usuarios').doc(usuarioActivo.uid).update(updates);
             }
         } else if (deleteBtn) {
             const nombreLote = deleteBtn.dataset.lote;
             if (confirm(`¿Estás seguro de que quieres eliminar el lote "${nombreLote}"?`)) {
-                delete estado.lotes[nombreLote];
-                if (estado.loteActivo === nombreLote) estado.loteActivo = null;
-                guardarEstadoEnFirebase();
+                // Usamos el método de actualización de Firebase para eliminar la clave del mapa
+                const updates = {};
+                updates[`lotes.${nombreLote}`] = firebase.firestore.FieldValue.delete();
+                if (estado.loteActivo === nombreLote) {
+                    updates['loteActivo'] = null;
+                }
+                db.collection('datos_usuarios').doc(usuarioActivo.uid).update(updates);
             }
         }
     });
@@ -363,10 +370,7 @@ document.addEventListener('DOMContentLoaded', () => {
         if (e.target.matches('.edit-valvula-btn')) {
             const valvula = estado.lotes[estado.loteActivo].valvulas.find(v => v.id == valvulaId);
             const nuevoNombre = prompt(`Editar nombre de "${valvula.nombre}":`, valvula.nombre);
-            if (nuevoNombre) {
-                valvula.nombre = nuevoNombre;
-                guardarEstadoEnFirebase();
-            }
+            if (nuevoNombre) { valvula.nombre = nuevoNombre; guardarEstadoEnFirebase(); }
         } else if (e.target.matches('.delete-valvula-btn')) {
             if (confirm('¿Seguro que quieres eliminar esta válvula?')) {
                 estado.lotes[estado.loteActivo].valvulas = estado.lotes[estado.loteActivo].valvulas.filter(v => v.id != valvulaId);
@@ -393,6 +397,7 @@ document.addEventListener('DOMContentLoaded', () => {
             const valor = parseInt(e.target.value) || 0;
             const valvula = estado.lotes[estado.loteActivo].valvulas.find(v => v.id == estado.valvulaActivaId);
             if(!valvula) return;
+            if(!valvula.racimos) valvula.racimos = [];
             valvula.racimos[punto] = valor;
             estado.lotes[estado.loteActivo].ultimaModificacion = new Date().toISOString();
             guardarEstadoEnFirebase();
@@ -416,6 +421,7 @@ document.addEventListener('DOMContentLoaded', () => {
             const valor = parseInt(e.target.value);
             const valvula = estado.lotes[estado.loteActivo].valvulas.find(v => v.id == estado.valvulaActivaId);
             if (!valvula) return;
+            if (!valvula.conteos) valvula.conteos = {};
             if (!valvula.conteos[plaga]) valvula.conteos[plaga] = [];
             valvula.conteos[plaga].push(valor);
             estado.lotes[estado.loteActivo].ultimaModificacion = new Date().toISOString();
@@ -426,7 +432,8 @@ document.addEventListener('DOMContentLoaded', () => {
     // --- Lógica de Gestión de Plagas ---
     gestionPlagas.btnAgregar.addEventListener('click', () => {
         const nombrePlaga = gestionPlagas.inputNueva.value.trim();
-        if (nombrePlaga && !estado.plagas.some(p => p.nombre === nombrePlaga)) {
+        if (nombrePlaga && !(estado.plagas || []).some(p => p.nombre === nombrePlaga)) {
+            if (!estado.plagas) estado.plagas = [];
             estado.plagas.push({ nombre: nombrePlaga, formula: "I / (P * 4)" });
             guardarEstadoEnFirebase();
         }
@@ -458,7 +465,7 @@ document.addEventListener('DOMContentLoaded', () => {
         const lote = estado.lotes[nombreLote];
         if (!lote) return alert('No hay un lote seleccionado para exportar.');
         const getWeekNumber = (d) => { d = new Date(Date.UTC(d.getFullYear(), d.getMonth(), d.getDate())); d.setUTCDate(d.getUTCDate() + 4 - (d.getUTCDay() || 7)); const yearStart = new Date(Date.UTC(d.getUTCFullYear(), 0, 1)); return Math.ceil((((d - yearStart) / 86400000) + 1) / 7); };
-        const calcularPromedio = (plaga, valvula) => { const I = (valvula.conteos[plaga.nombre] || []).reduce((a, b) => a + b, 0); const P = valvula.puntosEvaluados; const R = valvula.racimos.reduce((a, b) => a + b, 0); try { return new Function('I', 'P', 'R', `return ${plaga.formula}`)(I, P, R) || 0; } catch (e) { console.error(`Error en la fórmula para ${plaga.nombre}:`, e); return 0; } };
+        const calcularPromedio = (plaga, valvula) => { const I = (valvula.conteos[plaga.nombre] || []).reduce((a, b) => a + b, 0); const P = valvula.puntosEvaluados; const R = (valvula.racimos || []).reduce((a, b) => a + b, 0); try { return new Function('I', 'P', 'R', `return ${plaga.formula}`)(I, P, R) || 0; } catch (e) { console.error(`Error en la fórmula para ${plaga.nombre}:`, e); return 0; } };
         let dataRows = [];
         const hoy = new Date();
         const semana = getWeekNumber(hoy);
@@ -466,7 +473,7 @@ document.addEventListener('DOMContentLoaded', () => {
         dataRows.push(['Semana', semana, 'Lote', nombreLote, 'Fecha', fecha]);
         const nombresValvulas = lote.valvulas.map(v => v.nombre);
         dataRows.push(['', ...nombresValvulas]);
-        estado.plagas.forEach(plaga => {
+        (estado.plagas || []).forEach(plaga => {
             const fila = [plaga.nombre];
             lote.valvulas.forEach(valvula => {
                 const promedio = calcularPromedio(plaga, valvula);
@@ -492,7 +499,8 @@ document.addEventListener('DOMContentLoaded', () => {
         if (user) {
             usuarioActivo = user;
             if (unsubscribe) unsubscribe();
-            unsubscribe = db.collection('usuarios').doc(user.uid).onSnapshot(doc => {
+
+            unsubscribe = db.collection('datos_usuarios').doc(user.uid).onSnapshot(doc => {
                 if (doc.exists) {
                     estado = doc.data();
                 } else {
@@ -500,38 +508,51 @@ document.addEventListener('DOMContentLoaded', () => {
                     guardarEstadoEnFirebase();
                 }
                 
-                // Actualiza la vista actual con los nuevos datos de la nube
-                switch (vistaActiva) {
-                    case 'vista-bienvenida': renderBienvenida(); break;
-                    case 'vista-evaluacion': renderEvaluacion(); break;
-                    case 'vista-gestion-plagas': renderGestionPlagas(); break;
-                    case 'vista-config-calculo': renderConfigCalculo(); break;
-                    case 'vista-resultados': renderResultados(); break;
+                if (appInicializada) {
+                    renderizarVistaActual();
                 }
             }, error => {
                 console.error("Error al escuchar los datos:", error);
             });
-            iniciarAppParaUsuario();
+
+            db.collection('perfiles_usuarios').doc(user.uid).get().then(profileDoc => {
+                const nombreUsuario = profileDoc.exists ? profileDoc.data().nombre : user.email;
+                if (!appInicializada) {
+                    iniciarAppParaUsuario(nombreUsuario);
+                    appInicializada = true;
+                }
+            });
+
         } else {
             usuarioActivo = null;
             estado = {};
             if (unsubscribe) unsubscribe();
+            appInicializada = false;
+            sessionStorage.removeItem('welcomeShown');
             mostrarVista('vista-login');
         }
     });
 
-    const iniciarAppParaUsuario = () => {
+    const iniciarAppParaUsuario = (nombre) => {
         const hoy = new Date().toDateString();
         if (estado.fechaUltimaLimpieza !== hoy) {
             for (const nombreLote in estado.lotes) {
-                estado.lotes[nombreLote].valvulas.forEach(valvula => {
+                (estado.lotes[nombreLote].valvulas || []).forEach(valvula => {
                     valvula.conteos = {};
                 });
             }
             estado.fechaUltimaLimpieza = hoy;
             guardarEstadoEnFirebase();
         }
-        bienvenida.titulo.textContent = `Bienvenido, ${usuarioActivo.email}`;
-        mostrarVista('vista-bienvenida');
+        
+        bienvenida.titulo.textContent = `Hola, ${nombre}`;
+        
+        if (!sessionStorage.getItem('welcomeShown')) {
+            mostrarAnimacionBienvenida(nombre);
+            sessionStorage.setItem('welcomeShown', 'true');
+        } else {
+            mostrarVista('vista-bienvenida');
+            renderBienvenida();
+        }
     };
 });
