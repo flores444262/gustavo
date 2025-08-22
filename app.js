@@ -3,14 +3,16 @@ document.addEventListener('DOMContentLoaded', () => {
     // ===================================================================================
     //  1. CONFIGURACIÓN E INICIALIZACIÓN DE FIREBASE
     // ===================================================================================
-    const firebaseConfig = {
-        apiKey: "TU_API_KEY",
-        authDomain: "TU_AUTH_DOMAIN",
-        projectId: "TU_PROJECT_ID",
-        storageBucket: "TU_STORAGE_BUCKET",
-        messagingSenderId: "TU_MESSAGING_SENDER_ID",
-        appId: "TU_APP_ID"
-    };
+   const firebaseConfig = {
+  apiKey: "AIzaSyCHlOlmsXUpun9G0Foa2KlA33chjYg0VLs",
+  authDomain: "beta-pro-d511e.firebaseapp.com",
+  projectId: "beta-pro-d511e",
+  storageBucket: "beta-pro-d511e.firebasestorage.app",
+  messagingSenderId: "549720320374",
+  appId: "1:549720320374:web:6594b3d1c797817a387257",
+  measurementId: "G-E384DM924T"
+};
+
     firebase.initializeApp(firebaseConfig);
     const auth = firebase.auth();
     const db = firebase.firestore();
