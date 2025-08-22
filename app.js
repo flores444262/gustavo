@@ -22,7 +22,7 @@ document.addEventListener('DOMContentLoaded', () => {
     // ===================================================================================
     let estado = {}; 
     let usuarioActivo = null;
-    let appInicializada = false;
+    let appInicializada = false; // Flag para controlar la carga inicial
 
     // ===================================================================================
     //  3. SELECTORES DEL DOM
@@ -298,7 +298,7 @@ document.addEventListener('DOMContentLoaded', () => {
     configCalculo.btnVolver.addEventListener('click', () => mostrarVista('vista-bienvenida'));
     resultados.btnVolver.addEventListener('click', () => mostrarVista('vista-bienvenida'));
 
-    // --- Lógica de Bienvenida (CORREGIDA) ---
+    // --- Lógica de Bienvenida ---
     bienvenida.btnCrear.addEventListener('click', () => {
         const nombreLote = prompt('Ingrese el nombre del nuevo lote:');
         if (nombreLote && !estado.lotes[nombreLote]) {
@@ -331,25 +331,18 @@ document.addEventListener('DOMContentLoaded', () => {
             const nuevoNombre = prompt(`Ingrese el nuevo nombre para el lote "${nombreAntiguo}":`, nombreAntiguo);
             if (nuevoNombre && nuevoNombre !== nombreAntiguo) {
                 if (estado.lotes[nuevoNombre]) return alert('Error: Ya existe un lote con ese nombre.');
-                // Usamos el método de actualización de Firebase para renombrar la clave del mapa
-                const updates = {};
-                updates[`lotes.${nuevoNombre}`] = estado.lotes[nombreAntiguo];
-                updates[`lotes.${nombreAntiguo}`] = firebase.firestore.FieldValue.delete();
-                if (estado.loteActivo === nombreAntiguo) {
-                    updates['loteActivo'] = nuevoNombre;
-                }
-                db.collection('datos_usuarios').doc(usuarioActivo.uid).update(updates);
+                const loteData = estado.lotes[nombreAntiguo];
+                delete estado.lotes[nombreAntiguo];
+                estado.lotes[nuevoNombre] = loteData;
+                if (estado.loteActivo === nombreAntiguo) estado.loteActivo = nuevoNombre;
+                guardarEstadoEnFirebase();
             }
         } else if (deleteBtn) {
             const nombreLote = deleteBtn.dataset.lote;
             if (confirm(`¿Estás seguro de que quieres eliminar el lote "${nombreLote}"?`)) {
-                // Usamos el método de actualización de Firebase para eliminar la clave del mapa
-                const updates = {};
-                updates[`lotes.${nombreLote}`] = firebase.firestore.FieldValue.delete();
-                if (estado.loteActivo === nombreLote) {
-                    updates['loteActivo'] = null;
-                }
-                db.collection('datos_usuarios').doc(usuarioActivo.uid).update(updates);
+                delete estado.lotes[nombreLote];
+                if (estado.loteActivo === nombreLote) estado.loteActivo = null;
+                guardarEstadoEnFirebase();
             }
         }
     });
@@ -435,6 +428,7 @@ document.addEventListener('DOMContentLoaded', () => {
         if (nombrePlaga && !(estado.plagas || []).some(p => p.nombre === nombrePlaga)) {
             if (!estado.plagas) estado.plagas = [];
             estado.plagas.push({ nombre: nombrePlaga, formula: "I / (P * 4)" });
+            gestionPlagas.inputNueva.value = '';
             guardarEstadoEnFirebase();
         }
     });
