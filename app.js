@@ -3,32 +3,28 @@ document.addEventListener('DOMContentLoaded', () => {
     // ===================================================================================
     //  1. CONFIGURACIÓN E INICIALIZACIÓN DE FIREBASE
     // ===================================================================================
-    // ¡IMPORTANTE! Debes reemplazar esto con la configuración de TU proyecto de Firebase.
-      const firebaseConfig = {
-    apiKey: "AIzaSyCHlOlmsXUpun9G0Foa2KlA33chjYg0VLs",
-    authDomain: "beta-pro-d511e.firebaseapp.com",
-    projectId: "beta-pro-d511e",
-    storageBucket: "beta-pro-d511e.firebasestorage.app",
-    messagingSenderId: "549720320374",
-    appId: "1:549720320374:web:6594b3d1c797817a387257",
-    measurementId: "G-E384DM924T"
-  };
-
-
-    // Inicializar Firebase
+    const firebaseConfig = {
+        apiKey: "TU_API_KEY",
+        authDomain: "TU_AUTH_DOMAIN",
+        projectId: "TU_PROJECT_ID",
+        storageBucket: "TU_STORAGE_BUCKET",
+        messagingSenderId: "TU_MESSAGING_SENDER_ID",
+        appId: "TU_APP_ID"
+    };
     firebase.initializeApp(firebaseConfig);
     const auth = firebase.auth();
     const db = firebase.firestore();
-    let unsubscribe; // Para el listener de datos en tiempo real
+    let unsubscribe;
 
     // ===================================================================================
     //  2. ESTADO GLOBAL DE LA APLICACIÓN
     // ===================================================================================
     let estado = {}; 
     let usuarioActivo = null;
+    let vistaActiva = 'vista-login'; // Rastreador de la vista actual
 
     // ===================================================================================
-    //  3. SELECTORES DE ELEMENTOS DEL DOM
+    //  3. SELECTORES DEL DOM
     // ===================================================================================
     const vistas = document.querySelectorAll('.view');
     const login = {
@@ -103,12 +99,13 @@ document.addEventListener('DOMContentLoaded', () => {
     //  5. LÓGICA DE NAVEGACIÓN
     // ===================================================================================
     const mostrarVista = (idVista) => {
+        vistaActiva = idVista;
         vistas.forEach(vista => vista.classList.add('hidden'));
         document.getElementById(idVista).classList.remove('hidden');
     };
 
     // ===================================================================================
-    //  6. FUNCIONES DE RENDERIZADO (DIBUJAR LA INTERFAZ)
+    //  6. FUNCIONES DE RENDERIZADO
     // ===================================================================================
     const renderBienvenida = () => {
         bienvenida.listaLotes.innerHTML = '<h3>Selecciona un Lote:</h3>';
@@ -183,7 +180,7 @@ document.addEventListener('DOMContentLoaded', () => {
             evaluacion.racimosContenedor.innerHTML += `<label>Racimos Punto ${i + 1}:</label><input type="number" class="racimo-input" data-punto="${i}" value="${valvula.racimos[i] || ''}">`;
         }
         evaluacion.conteosContenedor.innerHTML = '';
-        estado.plagas.forEach(plaga => {
+        (estado.plagas || []).forEach(plaga => {
             const conteos = valvula.conteos[plaga.nombre] || [];
             let conteosHtml = '<div class="conteos-registrados">';
             conteos.forEach((numero, index) => {
@@ -195,19 +192,19 @@ document.addEventListener('DOMContentLoaded', () => {
     };
     const renderGestionPlagas = () => {
         gestionPlagas.lista.innerHTML = '';
-        estado.plagas.forEach(plaga => {
+        (estado.plagas || []).forEach(plaga => {
             gestionPlagas.lista.innerHTML += `<li><span>${plaga.nombre}</span><button class="delete-btn" data-plaga="${plaga.nombre}">Eliminar</button></li>`;
         });
     };
     const renderConfigCalculo = () => {
         configCalculo.contenedorFormulas.innerHTML = '<h3>Fórmulas por Plaga</h3>';
-        estado.plagas.forEach(plaga => {
+        (estado.plagas || []).forEach(plaga => {
             configCalculo.contenedorFormulas.innerHTML += `<div><label for="formula-${plaga.nombre}">${plaga.nombre}:</label><input type="text" id="formula-${plaga.nombre}" class="formula-input" data-plaga="${plaga.nombre}" value="${plaga.formula}"><small>Variables: I (Individuos), P (Puntos), R (Suma de Racimos)</small></div>`;
         });
     };
     const renderResultados = () => {
         resultados.listaLotes.innerHTML = '<h3>Selecciona un Lote:</h3>';
-        const lotesModificadosHoy = Object.keys(estado.lotes).filter(nombreLote => {
+        const lotesModificadosHoy = Object.keys(estado.lotes || {}).filter(nombreLote => {
             const lote = estado.lotes[nombreLote];
             return lote.ultimaModificacion && new Date(lote.ultimaModificacion).toDateString() === new Date().toDateString();
         });
@@ -242,7 +239,7 @@ document.addEventListener('DOMContentLoaded', () => {
             }
         });
         let tablaGeneralHTML = `<thead><tr><th>Plaga</th><th>Total Individuos</th><th>Promedio General</th></tr></thead><tbody>`;
-        estado.plagas.forEach(plaga => {
+        (estado.plagas || []).forEach(plaga => {
             const I = totalIndividuos[plaga.nombre] || 0;
             const P = totalPuntos;
             const R = totalRacimos;
@@ -254,7 +251,7 @@ document.addEventListener('DOMContentLoaded', () => {
         let tablasValvulasHTML = '';
         lote.valvulas.forEach(valvula => {
             tablasValvulasHTML += `<h4>${valvula.nombre}</h4><table><thead><tr><th>Plaga</th><th>Total Individuos</th><th>Promedio</th></tr></thead><tbody>`;
-            estado.plagas.forEach(plaga => {
+            (estado.plagas || []).forEach(plaga => {
                 const I = (valvula.conteos[plaga.nombre] || []).reduce((a, b) => a + b, 0);
                 const P = valvula.puntosEvaluados;
                 const R = valvula.racimos.reduce((a, b) => a + b, 0);
@@ -279,7 +276,10 @@ document.addEventListener('DOMContentLoaded', () => {
         const email = login.inputEmailRegistro.value;
         const password = login.inputPasswordRegistro.value;
         auth.createUserWithEmailAndPassword(email, password)
-            .then(() => alert('¡Usuario registrado con éxito! Ahora puedes iniciar sesión.'))
+            .then(() => {
+                alert('¡Usuario registrado con éxito! Ahora puedes iniciar sesión.');
+                login.linkLogin.click();
+            })
             .catch(error => alert(`Error al registrar: ${error.message}`));
     });
     login.btnLogin.addEventListener('click', () => {
@@ -291,9 +291,9 @@ document.addEventListener('DOMContentLoaded', () => {
     bienvenida.btnLogout.addEventListener('click', () => auth.signOut());
 
     // --- Navegación ---
-    bienvenida.btnGestionPlagas.addEventListener('click', () => { renderGestionPlagas(); mostrarVista('vista-gestion-plagas'); });
-    bienvenida.btnConfigCalculo.addEventListener('click', () => { renderConfigCalculo(); mostrarVista('vista-config-calculo'); });
-    bienvenida.btnResultados.addEventListener('click', () => { renderResultados(); mostrarVista('vista-resultados'); });
+    bienvenida.btnGestionPlagas.addEventListener('click', () => mostrarVista('vista-gestion-plagas'));
+    bienvenida.btnConfigCalculo.addEventListener('click', () => mostrarVista('vista-config-calculo'));
+    bienvenida.btnResultados.addEventListener('click', () => mostrarVista('vista-resultados'));
     evaluacion.btnVolver.addEventListener('click', () => mostrarVista('vista-bienvenida'));
     gestionPlagas.btnVolver.addEventListener('click', () => { guardarEstadoEnFirebase(); mostrarVista('vista-bienvenida'); });
     configCalculo.btnVolver.addEventListener('click', () => mostrarVista('vista-bienvenida'));
@@ -320,6 +320,7 @@ document.addEventListener('DOMContentLoaded', () => {
                 const idUnico = Date.now();
                 lote.valvulas.push({ id: idUnico, nombre: "Válvula 1", puntosEvaluados: 7, racimos: [], conteos: {} });
                 estado.valvulaActivaId = idUnico;
+                guardarEstadoEnFirebase();
             } else {
                 estado.valvulaActivaId = lote.valvulas[0].id;
             }
@@ -448,7 +449,7 @@ document.addEventListener('DOMContentLoaded', () => {
         mostrarVista('vista-bienvenida');
     });
     
-    // --- Lógica de Resultados ---
+    // --- Lógica de Resultados y Exportación ---
     resultados.listaLotes.addEventListener('click', (e) => { const targetButton = e.target.closest('.lote-select-resultados-btn'); if (targetButton) { renderTablaResultados(targetButton.dataset.lote); } });
     const exportarDatos = (separador) => {
         const nombreLote = resultados.tituloLote.textContent.replace('Resultados para: ', '');
@@ -496,10 +497,19 @@ document.addEventListener('DOMContentLoaded', () => {
                     estado = { lotes: {}, plagas: [], loteActivo: null, valvulaActivaId: null, fechaUltimaLimpieza: null };
                     guardarEstadoEnFirebase();
                 }
-                iniciarAppParaUsuario();
+                
+                // Actualiza la vista actual con los nuevos datos de la nube
+                switch (vistaActiva) {
+                    case 'vista-bienvenida': renderBienvenida(); break;
+                    case 'vista-evaluacion': renderEvaluacion(); break;
+                    case 'vista-gestion-plagas': renderGestionPlagas(); break;
+                    case 'vista-config-calculo': renderConfigCalculo(); break;
+                    case 'vista-resultados': renderResultados(); break;
+                }
             }, error => {
                 console.error("Error al escuchar los datos:", error);
             });
+            iniciarAppParaUsuario();
         } else {
             usuarioActivo = null;
             estado = {};
@@ -520,7 +530,6 @@ document.addEventListener('DOMContentLoaded', () => {
             guardarEstadoEnFirebase();
         }
         bienvenida.titulo.textContent = `Bienvenido, ${usuarioActivo.email}`;
-        renderBienvenida();
         mostrarVista('vista-bienvenida');
     };
 });
