@@ -1,229 +1,202 @@
 /* ========================================================== */
-/* VARIABLES Y ESTILOS BASE */
+/* ESTILOS GENERALES Y NUEVA APARIENCIA */
 /* ========================================================== */
 :root {
-    --primary-color: #27ae60;
-    --primary-hover: #2ecc71;
-    --secondary-color: #3498db;
-    --secondary-hover: #5dade2;
-    --danger-color: #e74c3c;
-    --danger-hover: #c0392b;
-    --dark-color: #2c3e50;
-    --light-color: #ffffff;
-    --grey-light: #f4f6f9; /* Un poco más claro */
-    --grey-medium: #dfe4ea;
-    --grey-dark: #576574;
-    --font-family: 'Inter', sans-serif;
-    --border-radius: 8px;
-    --shadow: 0 4px 12px rgba(0,0,0,0.1);
+    --primary-color: #4B5320; /* Verde Oliva Oscuro */
+    --primary-hover: #5A632B;
+    --secondary-color: #5D4037; /* Marrón Profundo */
+    --secondary-hover: #6D4C41;
+    --accent-color: #8B4513; /* Siena */
+    --danger-color: #A93226;
+    --danger-hover: #C0392B;
+    --light-gray: #F5F5F5; /* Humo Blanco */
+    --medium-gray: #E0E0E0;
+    --dark-gray: #616161;
+    --text-color: #3E2723; /* Marrón muy oscuro */
+    --card-bg: rgba(255, 255, 255, 0.95);
+    --shadow: 0 8px 32px 0 rgba(0, 0, 0, 0.1);
 }
 
 body {
-    font-family: var(--font-family);
+    font-family: 'Poppins', sans-serif;
     margin: 0;
-    /* NUEVO FONDO DE PANTALLA */
-    background-image: linear-gradient(rgba(244, 246, 249, 0.9), rgba(244, 246, 249, 0.9)), url('https://images.unsplash.com/photo-1563242652-32095b6295a3?q=80&w=2070&auto=format&fit=crop');
+    background-color: var(--light-gray);
+    background-image: linear-gradient(rgba(245, 245, 245, 0.92), rgba(245, 245, 245, 0.92)), url('https://images.unsplash.com/photo-1563097314-5ef1ae88352b?q=80&w=1974&auto=format&fit=crop');
     background-size: cover;
-    background-position: center;
     background-attachment: fixed;
-    
-    color: var(--dark-color);
+    color: var(--text-color);
     display: flex;
     justify-content: center;
     align-items: flex-start;
     padding: 20px;
     min-height: 100vh;
+}
+
+.view {
+    width: 100%;
+    max-width: 900px;
+}
+
+.card {
+    background-color: var(--card-bg);
+    border-radius: 12px;
+    padding: 30px;
+    margin-bottom: 25px;
+    box-shadow: var(--shadow);
+    border: 1px solid rgba(255, 255, 255, 0.2);
+    backdrop-filter: blur(5px);
+    transition: transform 0.3s ease, box-shadow 0.3s ease;
+}
+
+.card:hover {
+    transform: translateY(-5px);
+    box-shadow: 0 12px 35px rgba(0, 0, 0, 0.15);
+}
+
+
+h1, h2, h3, h4 {
+    color: var(--text-color);
+    font-weight: 600;
+}
+
+hr {
+    border: none;
+    border-top: 1px solid var(--medium-gray);
+    margin: 20px 0;
+}
+
+input[type="text"], input[type="number"], input[type="password"], input[type="email"] {
+    width: 100%;
+    padding: 12px 15px;
+    margin: 10px 0;
+    border: 1px solid #ccc;
+    border-radius: 8px;
     box-sizing: border-box;
+    font-family: 'Poppins', sans-serif;
+    transition: all 0.3s ease;
+}
+
+input:focus {
+    outline: none;
+    border-color: var(--primary-color);
+    box-shadow: 0 0 0 4px rgba(75, 83, 32, 0.2);
 }
 
 /* ========================================================== */
-/* PANTALLA DE BIENVENIDA ANIMADA */
+/* BOTONES Y OTROS ELEMENTOS */
 /* ========================================================== */
+.btn {
+    padding: 12px 20px;
+    border: none;
+    border-radius: 8px;
+    cursor: pointer;
+    font-size: 16px;
+    font-weight: 600;
+    margin: 5px;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    transition: all 0.3s ease;
+}
+.btn:hover {
+    transform: translateY(-3px);
+    box-shadow: 0 6px 20px rgba(0, 0, 0, 0.1);
+}
+.btn:active { 
+    transform: translateY(-1px);
+    box-shadow: 0 3px 10px rgba(0, 0, 0, 0.1);
+}
+.btn-primary { background-color: var(--primary-color); color: white; }
+.btn-primary:hover { background-color: var(--primary-hover); }
+.btn-secondary { background-color: var(--secondary-color); color: white; }
+.btn-secondary:hover { background-color: var(--secondary-hover); }
+.hidden { display: none !important; }
+
+/* EDICIÓN Y ELIMINACIÓN DE LOTES */
+.lote-button-container { display: flex; align-items: center; margin-bottom: 8px; gap: 8px; }
+.lote-select-btn { flex-grow: 1; text-align: left; background-color: white; border: 1px solid var(--medium-gray); color: var(--text-color); text-transform: none; letter-spacing: normal; }
+.lote-select-btn:hover { background-color: var(--light-gray); border-color: var(--dark-gray); }
+.edit-lote-btn, .delete-lote-btn { padding: 10px; cursor: pointer; font-size: 1.2em; border-radius: 8px; transition: background-color 0.2s; }
+.edit-lote-btn:hover, .delete-lote-btn:hover { background-color: var(--medium-gray); }
+.delete-lote-btn:hover { color: var(--danger-color); }
+
+/* PESTAÑAS (TABS) */
+.tabs-nav { display: flex; flex-wrap: nowrap; overflow-x: auto; margin-bottom: 20px; padding-bottom: 10px; border-bottom: 2px solid var(--medium-gray); }
+.tab-item { display: flex; align-items: center; padding: 10px 20px; cursor: pointer; border: none; border-bottom: 3px solid transparent; background-color: transparent; color: var(--dark-gray); margin-right: 10px; white-space: nowrap; transition: all 0.3s ease; }
+.tab-item.active { color: var(--primary-color); font-weight: 600; border-bottom: 3px solid var(--primary-color); }
+.edit-valvula-btn { font-size: 0.8em; margin-left: 10px; }
+.delete-valvula-btn { margin-left: 8px; font-weight: bold; color: var(--danger-hover); }
+.delete-valvula-btn:hover { color: var(--danger-color); }
+
+/* LISTAS Y TABLAS */
+ul { list-style-type: none; padding: 0; }
+li { padding: 15px; background-color: var(--light-gray); border-bottom: 1px solid var(--medium-gray); display: flex; justify-content: space-between; align-items: center; border-radius: 8px; margin-bottom: 8px; }
+.delete-btn { cursor: pointer; color: var(--danger-hover); font-weight: bold; }
+table { width: 100%; border-collapse: collapse; margin-top: 20px; }
+th, td { padding: 12px 15px; border: 1px solid var(--medium-gray); text-align: left; }
+th { background-color: var(--secondary-color); color: white; font-weight: 600; }
+tr:nth-child(even) { background-color: var(--light-gray); }
+
+/* CONTEOS EDITABLES */
+.conteos-registrados { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 10px; }
+.conteo-tag { background-color: var(--medium-gray); padding: 5px 12px; border-radius: 15px; font-size: 0.9em; display: flex; align-items: center; }
+.delete-conteo-btn { background: none; border: none; cursor: pointer; padding-left: 8px; font-size: 1.1em; }
+
+/* ========================================================== */
+/* LOGIN, BIENVENIDA Y ANIMACIÓN */
+/* ========================================================== */
+#vista-login .card { max-width: 400px; margin: 50px auto; animation: fadeIn 0.5s ease-in-out; }
+#vista-login a { color: var(--primary-color); cursor: pointer; font-weight: 600; }
+.header-bienvenida { display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px; flex-wrap: wrap; }
+.header-bienvenida h1 { margin: 0; font-size: 1.5em; }
+#btn-logout { background-color: var(--danger-color); color: white; }
+#btn-logout:hover { background-color: var(--danger-hover); }
+.export-buttons-container { display: flex; justify-content: center; gap: 10px; margin: 20px 0; flex-wrap: wrap; }
+.export-buttons-container .btn { width: auto; }
+
 #welcome-overlay {
     position: fixed;
     top: 0;
     left: 0;
     width: 100%;
     height: 100%;
-    background-color: var(--primary-color);
-    background-image: linear-gradient(rgba(0,0,0,0.5), rgba(0,0,0,0.5)), url('https://images.unsplash.com/photo-1557682250-33bd709cbe85?q=80&w=2070&auto=format&fit=crop');
-    background-size: cover;
-    background-position: center;
+    background: linear-gradient(135deg, var(--primary-color), var(--accent-color));
     display: flex;
     justify-content: center;
     align-items: center;
-    z-index: 1000;
     opacity: 0;
     transition: opacity 0.5s ease-in-out;
+    z-index: 1000;
 }
-#welcome-overlay.visible {
-    opacity: 1;
-}
+#welcome-overlay.visible { opacity: 1; }
 #welcome-message {
     color: white;
     font-size: 2em;
-    text-shadow: 2px 2px 4px rgba(0,0,0,0.5);
-    animation: scaleAndFade 2.5s ease-in-out forwards;
+    font-weight: 600;
+    animation: zoomAndFade 3s forwards;
+    text-shadow: 2px 2px 10px rgba(0,0,0,0.3);
 }
 
-@keyframes scaleAndFade {
+@keyframes zoomAndFade {
     0% { transform: scale(0.5); opacity: 0; }
     50% { transform: scale(1.2); opacity: 1; }
+    80% { transform: scale(1); opacity: 1; }
     100% { transform: scale(1); opacity: 0; }
 }
 
-
-/* ========================================================== */
-/* ESTRUCTURA Y VISTAS */
-/* ========================================================== */
-.view {
-    width: 100%;
-    max-width: 900px;
+@keyframes fadeIn {
+    from { opacity: 0; transform: translateY(20px); }
+    to { opacity: 1; transform: translateY(0); }
 }
-.hidden {
-    display: none !important;
-}
-.card {
-    background-color: var(--light-color);
-    border-radius: var(--border-radius);
-    padding: 25px;
-    margin-bottom: 20px;
-    box-shadow: var(--shadow);
-    border: 1px solid #e8e8e8;
-}
-hr {
-    border: none;
-    border-top: 1px solid var(--grey-light);
-    margin: 25px 0;
-}
-
-/* ========================================================== */
-/* CABECERAS Y TÍTULOS */
-/* ========================================================== */
-h1, h2, h3, h4 {
-    margin-top: 0;
-    font-weight: 700;
-}
-.view-header, .header-bienvenida {
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-    margin-bottom: 25px;
-    padding-bottom: 15px;
-    border-bottom: 1px solid var(--grey-medium);
-}
-
-/* ========================================================== */
-/* BOTONES */
-/* ========================================================== */
-.btn {
-    padding: 12px 20px;
-    border: none;
-    border-radius: var(--border-radius);
-    cursor: pointer;
-    font-size: 16px;
-    font-weight: 500;
-    margin: 5px;
-    transition: all 0.2s ease-in-out;
-    background-color: #ecf0f1;
-    color: var(--dark-color);
-    border: 1px solid var(--grey-medium);
-}
-.btn:hover {
-    transform: translateY(-2px);
-    box-shadow: 0 2px 8px rgba(0,0,0,0.1);
-}
-.btn:active {
-    transform: translateY(0);
-    box-shadow: none;
-}
-.btn-primary { background-color: var(--primary-color); color: white; border: none; }
-.btn-primary:hover { background-color: var(--primary-hover); }
-.btn-secondary { background-color: var(--secondary-color); color: white; border: none; }
-.btn-secondary:hover { background-color: var(--secondary-hover); }
-.btn-danger { background-color: var(--danger-color); color: white; border: none; }
-.btn-danger:hover { background-color: var(--danger-hover); }
-
-.navigation-buttons {
-    display: grid;
-    grid-template-columns: 1fr 1fr 1fr;
-    gap: 10px;
-}
-
-/* ========================================================== */
-/* FORMULARIOS Y ENTRADAS */
-/* ========================================================== */
-input[type="text"], input[type="number"], input[type="password"], input[type="email"] {
-    width: 100%;
-    padding: 12px;
-    margin: 10px 0;
-    border: 1px solid var(--grey-medium);
-    border-radius: var(--border-radius);
-    box-sizing: border-box;
-    font-size: 16px;
-    transition: border-color 0.2s, box-shadow 0.2s;
-}
-input:focus {
-    outline: none;
-    border-color: var(--primary-color);
-    box-shadow: 0 0 0 3px rgba(39, 174, 96, 0.2);
-}
-label {
-    font-weight: 500;
-    margin-bottom: 5px;
-    display: block;
-}
-
-/* ========================================================== */
-/* ELEMENTOS ESPECÍFICOS */
-/* ========================================================== */
-.lote-button-container { display: flex; align-items: center; margin-bottom: 5px; gap: 5px; }
-.lote-select-btn { flex-grow: 1; text-align: left; }
-.edit-lote-btn, .delete-lote-btn { font-size: 1.2em; cursor: pointer; padding: 10px; border-radius: 50%; transition: background-color 0.2s; }
-.edit-lote-btn:hover, .delete-lote-btn:hover { background-color: var(--grey-light); }
-.delete-lote-btn:hover { color: var(--danger-color); }
-
-.tabs-nav { display: flex; flex-wrap: nowrap; margin-bottom: 15px; padding-bottom: 10px; overflow-x: auto; }
-.tab-item { display: flex; align-items: center; padding: 10px 20px; cursor: pointer; border: 1px solid transparent; background-color: var(--grey-light); margin: 5px; border-radius: var(--border-radius); transition: all 0.2s; white-space: nowrap; }
-.tab-item.active { background-color: var(--dark-color); color: white; }
-.tab-item:not(.active):hover { background-color: #e0e0e0; }
-.edit-valvula-btn, .delete-valvula-btn { font-size: 0.8em; margin-left: 10px; padding: 5px; border-radius: 50%; }
-.edit-valvula-btn:hover, .delete-valvula-btn:hover { background-color: rgba(255,255,255,0.1); }
-
-ul { list-style-type: none; padding: 0; }
-li { padding: 15px; background-color: #fafafa; border: 1px solid #eee; border-radius: var(--border-radius); display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px; }
-
-table { width: 100%; border-collapse: collapse; margin-top: 20px; }
-th, td { padding: 12px; border: 1px solid #ddd; text-align: left; }
-th { background-color: var(--dark-color); color: white; }
-tr:nth-child(even) { background-color: #f9f9f9; }
-
-.conteos-registrados { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 5px; padding: 10px 0; }
-.conteo-tag { background-color: var(--grey-medium); color: var(--dark-color); padding: 5px 12px; border-radius: 15px; font-size: 0.9em; }
-.delete-conteo-btn { background: none; border: none; cursor: pointer; padding-left: 5px; color: var(--danger-color); }
-
-.export-buttons-container { display: flex; justify-content: center; gap: 10px; margin: 20px 0; }
-.export-buttons-container .btn { width: auto; }
-
-/* ========================================================== */
-/* LOGIN Y BIENVENIDA */
-/* ========================================================== */
-#vista-login .card { max-width: 400px; margin: 50px auto; }
-#vista-login a { color: #2980b9; cursor: pointer; }
-.header-bienvenida { display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px; }
-.header-bienvenida h1 { margin: 0; }
-#btn-logout { background-color: var(--danger-color); color: white; }
-#btn-logout:hover { background-color: var(--danger-hover); }
 
 /* ========================================================== */
 /* ESTILOS RESPONSIVOS */
 /* ========================================================== */
 @media (max-width: 768px) {
     body { padding: 10px; }
-    .card { padding: 15px; }
-    .btn { width: 100%; padding: 15px; }
-    .navigation-buttons { grid-template-columns: 1fr; }
-    .export-buttons-container { flex-direction: column; }
-    .export-buttons-container .btn { width: 100%; }
-    .header-bienvenida, .view-header { flex-direction: column; gap: 10px; text-align: center; }
+    .card { padding: 20px; }
+    h1 { font-size: 1.5em; }
+    .header-bienvenida { flex-direction: column; gap: 15px; }
+    .btn { width: 100%; padding: 15px; font-size: 1.1em; box-sizing: border-box; }
+    .export-buttons-container .btn { width: 100%; font-size: 1em; }
 }
+

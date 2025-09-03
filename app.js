@@ -3,15 +3,16 @@ document.addEventListener('DOMContentLoaded', () => {
     // ===================================================================================
     //  1. CONFIGURACIÓN E INICIALIZACIÓN DE FIREBASE
     // ===================================================================================
-   const firebaseConfig = {
-  apiKey: "AIzaSyCHlOlmsXUpun9G0Foa2KlA33chjYg0VLs",
-  authDomain: "beta-pro-d511e.firebaseapp.com",
-  projectId: "beta-pro-d511e",
-  storageBucket: "beta-pro-d511e.firebasestorage.app",
-  messagingSenderId: "549720320374",
-  appId: "1:549720320374:web:6594b3d1c797817a387257",
-  measurementId: "G-E384DM924T"
-};
+    const firebaseConfig = {
+
+        apiKey: "AIzaSyCHlOlmsXUpun9G0Foa2KlA33chjYg0VLs",
+        authDomain: "beta-pro-d511e.firebaseapp.com",
+        projectId: "beta-pro-d511e",
+        storageBucket: "beta-pro-d511e.firebasestorage.app",
+        messagingSenderId: "549720320374",
+        appId: "1:549720320374:web:6594b3d1c797817a387257",
+        measurementId: "G-E384DM924T"
+    };
  firebase.initializeApp(firebaseConfig);
     const auth = firebase.auth();
     const db = firebase.firestore();
@@ -293,19 +294,23 @@ document.addEventListener('DOMContentLoaded', () => {
     bienvenida.btnGestionPlagas.addEventListener('click', () => { mostrarVista('vista-gestion-plagas'); renderGestionPlagas(); });
     bienvenida.btnConfigCalculo.addEventListener('click', () => { mostrarVista('vista-config-calculo'); renderConfigCalculo(); });
     bienvenida.btnResultados.addEventListener('click', () => { mostrarVista('vista-resultados'); renderResultados(); });
-    evaluacion.btnVolver.addEventListener('click', () => { estado.loteActivo = null; estado.valvulaActivaId = null; mostrarVista('vista-bienvenida'); renderBienvenida(); });
+    evaluacion.btnVolver.addEventListener('click', () => {
+        const updates = { loteActivo: null, valvulaActivaId: null };
+        db.collection('datos_usuarios').doc(usuarioActivo.uid).update(updates);
+        mostrarVista('vista-bienvenida');
+    });
     gestionPlagas.btnVolver.addEventListener('click', () => { guardarEstadoEnFirebase(); mostrarVista('vista-bienvenida'); });
     configCalculo.btnVolver.addEventListener('click', () => mostrarVista('vista-bienvenida'));
     resultados.btnVolver.addEventListener('click', () => mostrarVista('vista-bienvenida'));
 
-    // --- Lógica de Bienvenida ---
+    // --- Lógica de Bienvenida (CORREGIDA) ---
     bienvenida.btnCrear.addEventListener('click', () => {
         const nombreLote = prompt('Ingrese el nombre del nuevo lote:');
-        if (nombreLote && !estado.lotes[nombreLote]) {
-            if(!estado.lotes) estado.lotes = {};
-            estado.lotes[nombreLote] = { valvulas: [], ultimaModificacion: null };
-            guardarEstadoEnFirebase();
-        } else if (estado.lotes[nombreLote]) {
+        if (nombreLote && !(estado.lotes && estado.lotes[nombreLote])) {
+            const loteKey = `lotes.${nombreLote}`;
+            const newLote = { valvulas: [], ultimaModificacion: null };
+            db.collection('datos_usuarios').doc(usuarioActivo.uid).update({ [loteKey]: newLote });
+        } else if (estado.lotes && estado.lotes[nombreLote]) {
             alert('El lote ya existe.');
         }
     });
@@ -313,36 +318,47 @@ document.addEventListener('DOMContentLoaded', () => {
         const selectBtn = e.target.closest('.lote-select-btn');
         const editBtn = e.target.closest('.edit-lote-btn');
         const deleteBtn = e.target.closest('.delete-lote-btn');
+        
         if (selectBtn) {
-            estado.loteActivo = selectBtn.dataset.lote;
-            const lote = estado.lotes[estado.loteActivo];
+            const nombreLote = selectBtn.dataset.lote;
+            const lote = estado.lotes[nombreLote];
+            let updates = { loteActivo: nombreLote };
+
             if ((lote.valvulas || []).length === 0) {
                 const idUnico = Date.now();
-                lote.valvulas = [{ id: idUnico, nombre: "Válvula 1", puntosEvaluados: 7, racimos: [], conteos: {} }];
-                estado.valvulaActivaId = idUnico;
-                guardarEstadoEnFirebase();
+                const nuevaValvula = { id: idUnico, nombre: "Válvula 1", puntosEvaluados: 7, racimos: [], conteos: {} };
+                updates[`lotes.${nombreLote}.valvulas`] = [nuevaValvula];
+                updates.valvulaActivaId = idUnico;
             } else {
-                estado.valvulaActivaId = lote.valvulas[0].id;
+                updates.valvulaActivaId = lote.valvulas[0].id;
             }
+            db.collection('datos_usuarios').doc(usuarioActivo.uid).update(updates);
             mostrarVista('vista-evaluacion');
-            renderEvaluacion();
+        
         } else if (editBtn) {
             const nombreAntiguo = editBtn.dataset.lote;
             const nuevoNombre = prompt(`Ingrese el nuevo nombre para el lote "${nombreAntiguo}":`, nombreAntiguo);
             if (nuevoNombre && nuevoNombre !== nombreAntiguo) {
                 if (estado.lotes[nuevoNombre]) return alert('Error: Ya existe un lote con ese nombre.');
                 const loteData = estado.lotes[nombreAntiguo];
-                delete estado.lotes[nombreAntiguo];
-                estado.lotes[nuevoNombre] = loteData;
-                if (estado.loteActivo === nombreAntiguo) estado.loteActivo = nuevoNombre;
-                guardarEstadoEnFirebase();
+                
+                let updates = {};
+                updates[`lotes.${nombreAntiguo}`] = firebase.firestore.FieldValue.delete();
+                updates[`lotes.${nuevoNombre}`] = loteData;
+                if (estado.loteActivo === nombreAntiguo) {
+                    updates.loteActivo = nuevoNombre;
+                }
+                db.collection('datos_usuarios').doc(usuarioActivo.uid).update(updates);
             }
         } else if (deleteBtn) {
             const nombreLote = deleteBtn.dataset.lote;
             if (confirm(`¿Estás seguro de que quieres eliminar el lote "${nombreLote}"?`)) {
-                delete estado.lotes[nombreLote];
-                if (estado.loteActivo === nombreLote) estado.loteActivo = null;
-                guardarEstadoEnFirebase();
+                let updates = {};
+                updates[`lotes.${nombreLote}`] = firebase.firestore.FieldValue.delete();
+                if (estado.loteActivo === nombreLote) {
+                    updates.loteActivo = null;
+                }
+                db.collection('datos_usuarios').doc(usuarioActivo.uid).update(updates);
             }
         }
     });
@@ -352,73 +368,102 @@ document.addEventListener('DOMContentLoaded', () => {
         const nombreValvula = prompt("Nombre para la nueva válvula:", `Válvula ${estado.lotes[estado.loteActivo].valvulas.length + 1}`);
         if (!nombreValvula) return;
         const idUnico = Date.now();
-        estado.lotes[estado.loteActivo].valvulas.push({ id: idUnico, nombre: nombreValvula, puntosEvaluados: 7, racimos: [], conteos: {} });
-        estado.valvulaActivaId = idUnico;
-        guardarEstadoEnFirebase();
+        const nuevaValvula = { id: idUnico, nombre: nombreValvula, puntosEvaluados: 7, racimos: [], conteos: {} };
+        
+        const updates = {
+            [`lotes.${estado.loteActivo}.valvulas`]: firebase.firestore.FieldValue.arrayUnion(nuevaValvula),
+            valvulaActivaId: idUnico
+        };
+        db.collection('datos_usuarios').doc(usuarioActivo.uid).update(updates);
     });
     evaluacion.navValvulas.addEventListener('click', (e) => {
         const tab = e.target.closest('.tab-item');
         if (!tab) return;
         const valvulaId = tab.dataset.id;
         if (e.target.matches('.edit-valvula-btn')) {
-            const valvula = estado.lotes[estado.loteActivo].valvulas.find(v => v.id == valvulaId);
+            const valvulas = estado.lotes[estado.loteActivo].valvulas;
+            const valvulaIndex = valvulas.findIndex(v => v.id == valvulaId);
+            const valvula = valvulas[valvulaIndex];
             const nuevoNombre = prompt(`Editar nombre de "${valvula.nombre}":`, valvula.nombre);
-            if (nuevoNombre) { valvula.nombre = nuevoNombre; guardarEstadoEnFirebase(); }
+            if (nuevoNombre) {
+                valvulas[valvulaIndex].nombre = nuevoNombre;
+                db.collection('datos_usuarios').doc(usuarioActivo.uid).update({ [`lotes.${estado.loteActivo}.valvulas`]: valvulas });
+            }
         } else if (e.target.matches('.delete-valvula-btn')) {
             if (confirm('¿Seguro que quieres eliminar esta válvula?')) {
-                estado.lotes[estado.loteActivo].valvulas = estado.lotes[estado.loteActivo].valvulas.filter(v => v.id != valvulaId);
+                const nuevasValvulas = estado.lotes[estado.loteActivo].valvulas.filter(v => v.id != valvulaId);
+                let nuevaValvulaActivaId = estado.valvulaActivaId;
                 if (estado.valvulaActivaId == valvulaId) {
-                    estado.valvulaActivaId = estado.lotes[estado.loteActivo].valvulas[0]?.id || null;
+                    nuevaValvulaActivaId = nuevasValvulas[0]?.id || null;
                 }
-                guardarEstadoEnFirebase();
+                db.collection('datos_usuarios').doc(usuarioActivo.uid).update({ 
+                    [`lotes.${estado.loteActivo}.valvulas`]: nuevasValvulas,
+                    valvulaActivaId: nuevaValvulaActivaId
+                });
             }
         } else {
-            estado.valvulaActivaId = valvulaId;
-            renderEvaluacion();
+            db.collection('datos_usuarios').doc(usuarioActivo.uid).update({ valvulaActivaId: valvulaId });
         }
     });
     evaluacion.puntosInput.addEventListener('change', (e) => {
-        const valvula = estado.lotes[estado.loteActivo].valvulas.find(v => v.id == estado.valvulaActivaId);
-        if(!valvula) return;
-        valvula.puntosEvaluados = parseInt(e.target.value) || 1;
-        estado.lotes[estado.loteActivo].ultimaModificacion = new Date().toISOString();
-        guardarEstadoEnFirebase();
+        const valvulas = estado.lotes[estado.loteActivo].valvulas;
+        const valvulaIndex = valvulas.findIndex(v => v.id == estado.valvulaActivaId);
+        if (valvulaIndex === -1) return;
+        valvulas[valvulaIndex].puntosEvaluados = parseInt(e.target.value) || 1;
+        
+        db.collection('datos_usuarios').doc(usuarioActivo.uid).update({
+            [`lotes.${estado.loteActivo}.valvulas`]: valvulas,
+            [`lotes.${estado.loteActivo}.ultimaModificacion`]: new Date().toISOString()
+        });
     });
     evaluacion.racimosContenedor.addEventListener('change', (e) => {
         if (e.target.matches('.racimo-input')) {
             const punto = parseInt(e.target.dataset.punto);
             const valor = parseInt(e.target.value) || 0;
-            const valvula = estado.lotes[estado.loteActivo].valvulas.find(v => v.id == estado.valvulaActivaId);
-            if(!valvula) return;
-            if(!valvula.racimos) valvula.racimos = [];
-            valvula.racimos[punto] = valor;
-            estado.lotes[estado.loteActivo].ultimaModificacion = new Date().toISOString();
-            guardarEstadoEnFirebase();
+            const valvulas = estado.lotes[estado.loteActivo].valvulas;
+            const valvulaIndex = valvulas.findIndex(v => v.id == estado.valvulaActivaId);
+            if (valvulaIndex === -1) return;
+            if (!valvulas[valvulaIndex].racimos) valvulas[valvulaIndex].racimos = [];
+            valvulas[valvulaIndex].racimos[punto] = valor;
+            
+            db.collection('datos_usuarios').doc(usuarioActivo.uid).update({
+                [`lotes.${estado.loteActivo}.valvulas`]: valvulas,
+                [`lotes.${estado.loteActivo}.ultimaModificacion`]: new Date().toISOString()
+            });
         }
     });
     evaluacion.conteosContenedor.addEventListener('click', (e) => {
         if (e.target.matches('.delete-conteo-btn')) {
             const plaga = e.target.dataset.plaga;
             const index = parseInt(e.target.dataset.index);
-            const valvula = estado.lotes[estado.loteActivo].valvulas.find(v => v.id == estado.valvulaActivaId);
-            if (valvula && valvula.conteos[plaga]) {
-                valvula.conteos[plaga].splice(index, 1);
-                estado.lotes[estado.loteActivo].ultimaModificacion = new Date().toISOString();
-                guardarEstadoEnFirebase();
-            }
+            const valvulas = estado.lotes[estado.loteActivo].valvulas;
+            const valvulaIndex = valvulas.findIndex(v => v.id == estado.valvulaActivaId);
+            if (valvulaIndex === -1 || !valvulas[valvulaIndex].conteos[plaga]) return;
+            
+            valvulas[valvulaIndex].conteos[plaga].splice(index, 1);
+            db.collection('datos_usuarios').doc(usuarioActivo.uid).update({
+                [`lotes.${estado.loteActivo}.valvulas`]: valvulas,
+                [`lotes.${estado.loteActivo}.ultimaModificacion`]: new Date().toISOString()
+            });
         }
     });
     evaluacion.conteosContenedor.addEventListener('change', (e) => {
         if (e.target.matches('.conteo-input') && e.target.value) {
             const plaga = e.target.dataset.plaga;
             const valor = parseInt(e.target.value);
-            const valvula = estado.lotes[estado.loteActivo].valvulas.find(v => v.id == estado.valvulaActivaId);
-            if (!valvula) return;
-            if (!valvula.conteos) valvula.conteos = {};
-            if (!valvula.conteos[plaga]) valvula.conteos[plaga] = [];
-            valvula.conteos[plaga].push(valor);
-            estado.lotes[estado.loteActivo].ultimaModificacion = new Date().toISOString();
-            guardarEstadoEnFirebase();
+            const valvulas = estado.lotes[estado.loteActivo].valvulas;
+            const valvulaIndex = valvulas.findIndex(v => v.id == estado.valvulaActivaId);
+            if (valvulaIndex === -1) return;
+            
+            if (!valvulas[valvulaIndex].conteos) valvulas[valvulaIndex].conteos = {};
+            if (!valvulas[valvulaIndex].conteos[plaga]) valvulas[valvulaIndex].conteos[plaga] = [];
+            valvulas[valvulaIndex].conteos[plaga].push(valor);
+            
+            e.target.value = ''; // Limpiar input
+            db.collection('datos_usuarios').doc(usuarioActivo.uid).update({
+                [`lotes.${estado.loteActivo}.valvulas`]: valvulas,
+                [`lotes.${estado.loteActivo}.ultimaModificacion`]: new Date().toISOString()
+            });
         }
     });
 
@@ -426,28 +471,34 @@ document.addEventListener('DOMContentLoaded', () => {
     gestionPlagas.btnAgregar.addEventListener('click', () => {
         const nombrePlaga = gestionPlagas.inputNueva.value.trim();
         if (nombrePlaga && !(estado.plagas || []).some(p => p.nombre === nombrePlaga)) {
-            if (!estado.plagas) estado.plagas = [];
-            estado.plagas.push({ nombre: nombrePlaga, formula: "I / (P * 4)" });
+            const nuevaPlaga = { nombre: nombrePlaga, formula: "I / (P * 4)" };
             gestionPlagas.inputNueva.value = '';
-            guardarEstadoEnFirebase();
+            db.collection('datos_usuarios').doc(usuarioActivo.uid).update({
+                plagas: firebase.firestore.FieldValue.arrayUnion(nuevaPlaga)
+            });
         }
     });
     gestionPlagas.lista.addEventListener('click', (e) => {
         if (e.target.matches('.delete-btn')) {
             const nombrePlaga = e.target.dataset.plaga;
-            estado.plagas = estado.plagas.filter(p => p.nombre !== nombrePlaga);
-            guardarEstadoEnFirebase();
+            const plagaAEliminar = estado.plagas.find(p => p.nombre === nombrePlaga);
+            if (plagaAEliminar) {
+                db.collection('datos_usuarios').doc(usuarioActivo.uid).update({
+                    plagas: firebase.firestore.FieldValue.arrayRemove(plagaAEliminar)
+                });
+            }
         }
     });
 
     // --- Lógica de Configuración de Cálculos ---
     configCalculo.btnGuardar.addEventListener('click', () => {
+        const nuevasPlagas = [...estado.plagas];
         document.querySelectorAll('.formula-input').forEach(input => {
             const nombrePlaga = input.dataset.plaga;
-            const plaga = estado.plagas.find(p => p.nombre === nombrePlaga);
-            if (plaga) plaga.formula = input.value;
+            const plagaIndex = nuevasPlagas.findIndex(p => p.nombre === nombrePlaga);
+            if (plagaIndex > -1) nuevasPlagas[plagaIndex].formula = input.value;
         });
-        guardarEstadoEnFirebase();
+        db.collection('datos_usuarios').doc(usuarioActivo.uid).update({ plagas: nuevasPlagas });
         alert('Fórmulas guardadas.');
         mostrarVista('vista-bienvenida');
     });
@@ -530,13 +581,13 @@ document.addEventListener('DOMContentLoaded', () => {
     const iniciarAppParaUsuario = (nombre) => {
         const hoy = new Date().toDateString();
         if (estado.fechaUltimaLimpieza !== hoy) {
+            const updates = {};
             for (const nombreLote in estado.lotes) {
-                (estado.lotes[nombreLote].valvulas || []).forEach(valvula => {
-                    valvula.conteos = {};
-                });
+                const valvulasLimpias = (estado.lotes[nombreLote].valvulas || []).map(v => ({ ...v, conteos: {} }));
+                updates[`lotes.${nombreLote}.valvulas`] = valvulasLimpias;
             }
-            estado.fechaUltimaLimpieza = hoy;
-            guardarEstadoEnFirebase();
+            updates.fechaUltimaLimpieza = hoy;
+            db.collection('datos_usuarios').doc(usuarioActivo.uid).update(updates);
         }
         
         bienvenida.titulo.textContent = `Hola, ${nombre}`;
@@ -550,3 +601,4 @@ document.addEventListener('DOMContentLoaded', () => {
         }
     };
 });
+

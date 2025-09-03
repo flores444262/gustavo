@@ -3,19 +3,13 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <link rel="manifest" href="manifest.json">
+    <title>Sistema Agrícola de Evaluación</title>
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;700&display=swap" rel="stylesheet">
-    <title>Sistema Agrícola de Evaluación</title>
+    <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;600&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="styles.css">
 </head>
 <body>
-
-    <!-- NUEVA PANTALLA DE BIENVENIDA ANIMADA -->
-    <div id="welcome-overlay" class="hidden">
-        <h1 id="welcome-message"></h1>
-    </div>
 
     <!-- VISTA DE INICIO DE SESIÓN / REGISTRO -->
     <div id="vista-login" class="view">
@@ -30,38 +24,40 @@
             </div>
             <div id="registro-form" class="hidden">
                 <h2>Registrar Nuevo Usuario</h2>
-                <!-- Campo de Nombre añadido -->
-                <input type="text" id="registro-nombre" placeholder="Tu nombre" autocomplete="name">
-                <input type="email" id="registro-email" placeholder="Tu correo electrónico" autocomplete="email">
+                <input type="text" id="registro-nombre" placeholder="Nombre completo" autocomplete="name">
+                <input type="email" id="registro-email" placeholder="Correo electrónico" autocomplete="email">
                 <input type="password" id="registro-password" placeholder="Elige una contraseña" autocomplete="new-password">
                 <button id="btn-registro" class="btn btn-primary">Registrar</button>
                 <p>¿Ya tienes cuenta? <a href="#" id="link-a-login">Inicia sesión</a></p>
             </div>
         </div>
     </div>
+    
+    <!-- VISTA DE BIENVENIDA ANIMADA -->
+    <div id="welcome-overlay" class="view hidden">
+        <h1 id="welcome-message"></h1>
+    </div>
 
     <!-- VISTA DE BIENVENIDA Y SELECCIÓN DE LOTE -->
     <div id="vista-bienvenida" class="view hidden">
         <div class="card">
             <div class="header-bienvenida">
-                <h1 id="titulo-bienvenida"></h1>
-                <button id="btn-logout" class="btn btn-danger">Cerrar Sesión</button>
+                <h1 id="titulo-bienvenida">Sistema de Evaluación Agrícola</h1>
+                <button id="btn-logout" class="btn">Cerrar Sesión</button>
             </div>
             <p>¿Qué lote se evaluará hoy?</p>
             <div id="lista-seleccion-lotes"></div>
             <button id="btn-crear-nuevo-lote" class="btn btn-primary">Crear Nuevo Lote</button>
             <hr>
-            <div class="navigation-buttons">
-                <button id="btn-ver-resultados" class="btn">Ver Promedios</button>
-                <button id="btn-ir-a-gestion-plagas" class="btn">Gestionar Plagas</button>
-                <button id="btn-ir-a-config-calculo" class="btn">Editar Fórmulas</button>
-            </div>
+            <button id="btn-ver-resultados" class="btn">Ver Promedios de Hoy</button>
+            <button id="btn-ir-a-gestion-plagas" class="btn">Gestionar Plagas</button>
+            <button id="btn-ir-a-config-calculo" class="btn">Editar Fórmulas de Cálculo</button>
         </div>
     </div>
 
-    <!-- VISTAS RESTANTES (sin cambios en la estructura) -->
+    <!-- VISTA PRINCIPAL DE EVALUACIÓN -->
     <div id="vista-evaluacion" class="view hidden">
-        <header class="view-header">
+        <header>
             <h1 id="evaluacion-titulo-lote"></h1>
             <button id="btn-volver-inicio" class="btn">Volver al Inicio</button>
         </header>
@@ -83,25 +79,22 @@
         </main>
     </div>
 
+    <!-- VISTA DE GESTIÓN DE PLAGAS -->
     <div id="vista-gestion-plagas" class="view hidden">
-        <header class="view-header">
-            <h2>Gestión de Plagas</h2>
-            <button id="btn-volver-inicio-desde-plagas" class="btn">Guardar y Volver</button>
-        </header>
         <div class="card">
+            <h2>Gestión de Plagas</h2>
             <p>Añade, edita o elimina las plagas que se usarán en las evaluaciones.</p>
             <input type="text" id="input-nueva-plaga-gestion" placeholder="Nombre de la nueva plaga">
             <button id="btn-agregar-plaga-gestion" class="btn btn-primary">Agregar Plaga</button>
             <ul id="lista-plagas-gestion"></ul>
+            <button id="btn-volver-inicio-desde-plagas" class="btn">Guardar y Volver</button>
         </div>
     </div>
 
+    <!-- VISTA DE RESULTADOS -->
     <div id="vista-resultados" class="view hidden">
-        <header class="view-header">
-            <h2>Resultados del Día</h2>
-            <button id="btn-volver-inicio-desde-resultados" class="btn">Volver al Inicio</button>
-        </header>
         <div class="card">
+            <h2>Resultados del Día</h2>
             <p>Selecciona un lote para ver sus promedios.</p>
             <div id="lista-seleccion-lotes-resultados"></div>
             <div id="contenido-resultados" class="hidden">
@@ -115,38 +108,25 @@
                 <h4>Promedio por Válvula</h4>
                 <div id="tablas-por-valvula"></div>
             </div>
+            <button id="btn-volver-inicio-desde-resultados" class="btn">Volver al Inicio</button>
         </div>
     </div>
     
+    <!-- VISTA DE CONFIGURACIÓN DE CÁLCULOS -->
     <div id="vista-config-calculo" class="view hidden">
-         <header class="view-header">
-            <h2>Configuración de Fórmulas</h2>
-            <button id="btn-volver-inicio-desde-config" class="btn">Volver al Inicio</button>
-        </header>
          <div class="card">
+            <h2>Configuración de Fórmulas</h2>
             <p>Define la fórmula para el promedio de cada plaga.</p>
             <div id="contenedor-formulas"></div>
             <button id="btn-guardar-formulas" class="btn btn-primary">Guardar Fórmulas</button>
+            <button id="btn-volver-inicio-desde-config" class="btn">Volver al Inicio</button>
          </div>
     </div>
 
-    <!-- Scripts -->
     <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-app.js"></script>
     <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-auth.js"></script>
     <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-firestore.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/FileSaver.js/2.0.5/FileSaver.min.js"></script>
     <script src="app.js"></script>
-    
-    <script>
-      if ('serviceWorker' in navigator) {
-        window.addEventListener('load', () => {
-          navigator.serviceWorker.register('/sw.js').then(registration => {
-            console.log('ServiceWorker registrado con éxito:', registration.scope);
-          }, err => {
-            console.log('Fallo en el registro del ServiceWorker:', err);
-          });
-        });
-      }
-    </script>
 </body>
 </html>
