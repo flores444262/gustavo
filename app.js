@@ -13,7 +13,7 @@ document.addEventListener('DOMContentLoaded', () => {
         appId: "1:549720320374:web:6594b3d1c797817a387257",
         measurementId: "G-E384DM924T"
     };
- firebase.initializeApp(firebaseConfig);
+firebase.initializeApp(firebaseConfig);
     const auth = firebase.auth();
     const db = firebase.firestore();
     let unsubscribe;
@@ -23,7 +23,7 @@ document.addEventListener('DOMContentLoaded', () => {
     // ===================================================================================
     let estado = {}; 
     let usuarioActivo = null;
-    let appInicializada = false; // Flag para controlar la carga inicial
+    let appInicializada = false;
 
     // ===================================================================================
     //  3. SELECTORES DEL DOM
@@ -183,10 +183,9 @@ document.addEventListener('DOMContentLoaded', () => {
             return;
         };
         evaluacion.puntosInput.value = valvula.puntosEvaluados;
-        evaluacion.racimosContenedor.innerHTML = '';
-        for (let i = 0; i < valvula.puntosEvaluados; i++) {
-            evaluacion.racimosContenedor.innerHTML += `<label>Racimos Punto ${i + 1}:</label><input type="number" class="racimo-input" data-punto="${i}" value="${valvula.racimos[i] || ''}">`;
-        }
+        
+        renderRacimos(valvula);
+
         evaluacion.conteosContenedor.innerHTML = '';
         (estado.plagas || []).forEach(plaga => {
             const conteos = valvula.conteos[plaga.nombre] || [];
@@ -198,6 +197,46 @@ document.addEventListener('DOMContentLoaded', () => {
             evaluacion.conteosContenedor.innerHTML += `<div><h4>${plaga.nombre}</h4><input type="number" class="conteo-input" data-plaga="${plaga.nombre}" placeholder="Agregar conteo..."><p><strong>Total: ${conteos.reduce((a, b) => a + b, 0)}</strong></p><p>Registrados:</p>${conteosHtml}</div>`;
         });
     };
+    
+    const renderRacimos = (valvula) => {
+        const racimos = valvula.racimos || [];
+        const puntosTotales = valvula.puntosEvaluados;
+        const proximoPuntoIndex = racimos.findIndex(r => r === null || r === undefined);
+        const puntoActual = proximoPuntoIndex === -1 ? racimos.length : proximoPuntoIndex;
+
+        let html = '<div class="racimo-container">';
+
+        if (puntoActual < puntosTotales) {
+            html += `
+                <div class="racimo-progress">Ingresando Racimos: <strong>Punto ${puntoActual + 1} de ${puntosTotales}</strong></div>
+                <div class="racimo-input-wrapper">
+                    <input type="number" id="racimo-input-actual" placeholder="N° de racimos...">
+                    <button class="btn btn-primary" id="btn-guardar-racimo" data-punto="${puntoActual}">Guardar</button>
+                </div>
+            `;
+        } else {
+            html += '<div class="racimo-completo">✅ Todos los puntos de racimos han sido registrados.</div>';
+        }
+
+        if (racimos.length > 0) {
+            html += '<h4>Racimos Ingresados:</h4><div class="racimo-list">';
+            racimos.forEach((valor, index) => {
+                if (valor !== null && valor !== undefined) {
+                    html += `
+                        <div class="racimo-list-item">
+                            <span>Punto ${index + 1}: <strong>${valor}</strong></span>
+                            <span class="delete-racimo-btn" data-punto="${index}" title="Eliminar este punto">❌</span>
+                        </div>
+                    `;
+                }
+            });
+            html += '</div>';
+        }
+        
+        html += '</div>';
+        evaluacion.racimosContenedor.innerHTML = html;
+    };
+
     const renderGestionPlagas = () => {
         gestionPlagas.lista.innerHTML = '';
         (estado.plagas || []).forEach(plaga => {
@@ -303,7 +342,7 @@ document.addEventListener('DOMContentLoaded', () => {
     configCalculo.btnVolver.addEventListener('click', () => mostrarVista('vista-bienvenida'));
     resultados.btnVolver.addEventListener('click', () => mostrarVista('vista-bienvenida'));
 
-    // --- Lógica de Bienvenida (CORREGIDA) ---
+    // --- Lógica de Bienvenida ---
     bienvenida.btnCrear.addEventListener('click', () => {
         const nombreLote = prompt('Ingrese el nombre del nuevo lote:');
         if (nombreLote && !(estado.lotes && estado.lotes[nombreLote])) {
@@ -318,12 +357,10 @@ document.addEventListener('DOMContentLoaded', () => {
         const selectBtn = e.target.closest('.lote-select-btn');
         const editBtn = e.target.closest('.edit-lote-btn');
         const deleteBtn = e.target.closest('.delete-lote-btn');
-        
         if (selectBtn) {
             const nombreLote = selectBtn.dataset.lote;
             const lote = estado.lotes[nombreLote];
             let updates = { loteActivo: nombreLote };
-
             if ((lote.valvulas || []).length === 0) {
                 const idUnico = Date.now();
                 const nuevaValvula = { id: idUnico, nombre: "Válvula 1", puntosEvaluados: 7, racimos: [], conteos: {} };
@@ -334,30 +371,23 @@ document.addEventListener('DOMContentLoaded', () => {
             }
             db.collection('datos_usuarios').doc(usuarioActivo.uid).update(updates);
             mostrarVista('vista-evaluacion');
-        
         } else if (editBtn) {
             const nombreAntiguo = editBtn.dataset.lote;
             const nuevoNombre = prompt(`Ingrese el nuevo nombre para el lote "${nombreAntiguo}":`, nombreAntiguo);
             if (nuevoNombre && nuevoNombre !== nombreAntiguo) {
                 if (estado.lotes[nuevoNombre]) return alert('Error: Ya existe un lote con ese nombre.');
                 const loteData = estado.lotes[nombreAntiguo];
-                
                 let updates = {};
                 updates[`lotes.${nombreAntiguo}`] = firebase.firestore.FieldValue.delete();
                 updates[`lotes.${nuevoNombre}`] = loteData;
-                if (estado.loteActivo === nombreAntiguo) {
-                    updates.loteActivo = nuevoNombre;
-                }
+                if (estado.loteActivo === nombreAntiguo) updates.loteActivo = nuevoNombre;
                 db.collection('datos_usuarios').doc(usuarioActivo.uid).update(updates);
             }
         } else if (deleteBtn) {
             const nombreLote = deleteBtn.dataset.lote;
             if (confirm(`¿Estás seguro de que quieres eliminar el lote "${nombreLote}"?`)) {
-                let updates = {};
-                updates[`lotes.${nombreLote}`] = firebase.firestore.FieldValue.delete();
-                if (estado.loteActivo === nombreLote) {
-                    updates.loteActivo = null;
-                }
+                let updates = { [`lotes.${nombreLote}`]: firebase.firestore.FieldValue.delete() };
+                if (estado.loteActivo === nombreLote) updates.loteActivo = null;
                 db.collection('datos_usuarios').doc(usuarioActivo.uid).update(updates);
             }
         }
@@ -369,7 +399,6 @@ document.addEventListener('DOMContentLoaded', () => {
         if (!nombreValvula) return;
         const idUnico = Date.now();
         const nuevaValvula = { id: idUnico, nombre: nombreValvula, puntosEvaluados: 7, racimos: [], conteos: {} };
-        
         const updates = {
             [`lotes.${estado.loteActivo}.valvulas`]: firebase.firestore.FieldValue.arrayUnion(nuevaValvula),
             valvulaActivaId: idUnico
@@ -410,28 +439,57 @@ document.addEventListener('DOMContentLoaded', () => {
         const valvulaIndex = valvulas.findIndex(v => v.id == estado.valvulaActivaId);
         if (valvulaIndex === -1) return;
         valvulas[valvulaIndex].puntosEvaluados = parseInt(e.target.value) || 1;
-        
         db.collection('datos_usuarios').doc(usuarioActivo.uid).update({
             [`lotes.${estado.loteActivo}.valvulas`]: valvulas,
             [`lotes.${estado.loteActivo}.ultimaModificacion`]: new Date().toISOString()
         });
     });
-    evaluacion.racimosContenedor.addEventListener('change', (e) => {
-        if (e.target.matches('.racimo-input')) {
+    
+    // *** MANEJADOR DE EVENTOS PARA RACIMOS CORREGIDO Y MEJORADO ***
+    evaluacion.racimosContenedor.addEventListener('click', (e) => {
+        const valvulas = estado.lotes[estado.loteActivo]?.valvulas;
+        if (!valvulas) return;
+        const valvulaIndex = valvulas.findIndex(v => v.id == estado.valvulaActivaId);
+        if (valvulaIndex === -1) return;
+
+        let shouldUpdate = false;
+
+        // Lógica para guardar un nuevo racimo
+        if (e.target.matches('#btn-guardar-racimo')) {
+            const input = document.getElementById('racimo-input-actual');
+            if (!input || input.value === '') return;
+
             const punto = parseInt(e.target.dataset.punto);
-            const valor = parseInt(e.target.value) || 0;
-            const valvulas = estado.lotes[estado.loteActivo].valvulas;
-            const valvulaIndex = valvulas.findIndex(v => v.id == estado.valvulaActivaId);
-            if (valvulaIndex === -1) return;
-            if (!valvulas[valvulaIndex].racimos) valvulas[valvulaIndex].racimos = [];
-            valvulas[valvulaIndex].racimos[punto] = valor;
-            
+            const valor = parseInt(input.value);
+
+            if (!isNaN(valor)) {
+                if (!valvulas[valvulaIndex].racimos) valvulas[valvulaIndex].racimos = [];
+                
+                while(valvulas[valvulaIndex].racimos.length <= punto) {
+                    valvulas[valvulaIndex].racimos.push(null);
+                }
+                valvulas[valvulaIndex].racimos[punto] = valor;
+                shouldUpdate = true;
+            }
+        }
+
+        // Lógica para eliminar un racimo existente
+        if (e.target.matches('.delete-racimo-btn')) {
+            const punto = parseInt(e.target.dataset.punto);
+            if (valvulas[valvulaIndex].racimos && valvulas[valvulaIndex].racimos[punto] !== undefined) {
+                valvulas[valvulaIndex].racimos[punto] = null;
+                shouldUpdate = true;
+            }
+        }
+        
+        if (shouldUpdate) {
             db.collection('datos_usuarios').doc(usuarioActivo.uid).update({
                 [`lotes.${estado.loteActivo}.valvulas`]: valvulas,
                 [`lotes.${estado.loteActivo}.ultimaModificacion`]: new Date().toISOString()
             });
         }
     });
+
     evaluacion.conteosContenedor.addEventListener('click', (e) => {
         if (e.target.matches('.delete-conteo-btn')) {
             const plaga = e.target.dataset.plaga;
@@ -439,7 +497,6 @@ document.addEventListener('DOMContentLoaded', () => {
             const valvulas = estado.lotes[estado.loteActivo].valvulas;
             const valvulaIndex = valvulas.findIndex(v => v.id == estado.valvulaActivaId);
             if (valvulaIndex === -1 || !valvulas[valvulaIndex].conteos[plaga]) return;
-            
             valvulas[valvulaIndex].conteos[plaga].splice(index, 1);
             db.collection('datos_usuarios').doc(usuarioActivo.uid).update({
                 [`lotes.${estado.loteActivo}.valvulas`]: valvulas,
@@ -454,12 +511,11 @@ document.addEventListener('DOMContentLoaded', () => {
             const valvulas = estado.lotes[estado.loteActivo].valvulas;
             const valvulaIndex = valvulas.findIndex(v => v.id == estado.valvulaActivaId);
             if (valvulaIndex === -1) return;
-            
-            if (!valvulas[valvulaIndex].conteos) valvulas[valvulaIndex].conteos = {};
-            if (!valvulas[valvulaIndex].conteos[plaga]) valvulas[valvulaIndex].conteos[plaga] = [];
-            valvulas[valvulaIndex].conteos[plaga].push(valor);
-            
-            e.target.value = ''; // Limpiar input
+            const valvula = valvulas[valvulaIndex];
+            if (!valvula.conteos) valvula.conteos = {};
+            if (!valvula.conteos[plaga]) valvula.conteos[plaga] = [];
+            valvula.conteos[plaga].push(valor);
+            e.target.value = '';
             db.collection('datos_usuarios').doc(usuarioActivo.uid).update({
                 [`lotes.${estado.loteActivo}.valvulas`]: valvulas,
                 [`lotes.${estado.loteActivo}.ultimaModificacion`]: new Date().toISOString()
@@ -544,7 +600,6 @@ document.addEventListener('DOMContentLoaded', () => {
         if (user) {
             usuarioActivo = user;
             if (unsubscribe) unsubscribe();
-
             unsubscribe = db.collection('datos_usuarios').doc(user.uid).onSnapshot(doc => {
                 if (doc.exists) {
                     estado = doc.data();
@@ -552,13 +607,10 @@ document.addEventListener('DOMContentLoaded', () => {
                     estado = { lotes: {}, plagas: [], loteActivo: null, valvulaActivaId: null, fechaUltimaLimpieza: null };
                     guardarEstadoEnFirebase();
                 }
-                
                 if (appInicializada) {
                     renderizarVistaActual();
                 }
-            }, error => {
-                console.error("Error al escuchar los datos:", error);
-            });
+            }, error => console.error("Error al escuchar los datos:", error));
 
             db.collection('perfiles_usuarios').doc(user.uid).get().then(profileDoc => {
                 const nombreUsuario = profileDoc.exists ? profileDoc.data().nombre : user.email;
@@ -567,7 +619,6 @@ document.addEventListener('DOMContentLoaded', () => {
                     appInicializada = true;
                 }
             });
-
         } else {
             usuarioActivo = null;
             estado = {};
@@ -589,9 +640,7 @@ document.addEventListener('DOMContentLoaded', () => {
             updates.fechaUltimaLimpieza = hoy;
             db.collection('datos_usuarios').doc(usuarioActivo.uid).update(updates);
         }
-        
         bienvenida.titulo.textContent = `Hola, ${nombre}`;
-        
         if (!sessionStorage.getItem('welcomeShown')) {
             mostrarAnimacionBienvenida(nombre);
             sessionStorage.setItem('welcomeShown', 'true');
